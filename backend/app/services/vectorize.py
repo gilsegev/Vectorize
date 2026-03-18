@@ -7,8 +7,8 @@ import xml.etree.ElementTree as ET
 
 from PIL import Image, ImageOps
 
-POTRACE_TURDSIZE = "100"
-POTRACE_ALPHAMAX = "0"
+POTRACE_TURDSIZE = "200"
+POTRACE_ALPHAMAX = "0.8"
 STAR_OPT = "0.9"
 TEXT_OPT = "0.4"
 MIN_TEXT_COMPONENT = 40

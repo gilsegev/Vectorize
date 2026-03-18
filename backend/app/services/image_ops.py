@@ -38,7 +38,7 @@ def cleanup_raster(candidate_path: Path, binary_out: Path, preview_out: Path, st
     img = Image.open(candidate_path).convert("L")
 
     width, height = img.size
-    gray = list(img.getdata())
+    gray = list(ImageOps.autocontrast(img).getdata())
 
     # Strict binary crush using Otsu (equivalent intent to THRESH_BINARY + OTSU).
     histogram = [0] * 256
@@ -121,6 +121,8 @@ def cleanup_raster(candidate_path: Path, binary_out: Path, preview_out: Path, st
     else:
         cleaned = filtered_img
 
+    # Enforce exact 2-color output with no anti-aliasing before vectorization.
+    cleaned = cleaned.point(lambda p: 0 if p < 128 else 255, mode="1").convert("L")
     cleaned.save(binary_out, format="PNG")
 
     preview = ImageOps.colorize(cleaned, black="#111111", white="#f5f5f5")

@@ -9,12 +9,13 @@ from PIL import Image, ImageEnhance, ImageFilter, ImageOps
 from app.config import settings
 
 PROMPT = (
-    "Technical black and white vector line art, solid flat fills, no gradients, no shading, "
-    "bold continuous black outlines, pure white background, high contrast, minimalist symbol style."
+    "Illustration-first flat 2D vector style of a truck with bold weighted black lines, geometric abstraction, "
+    "solid flat fills, pure black and white only, no anti-aliasing, no gradients, no shading, "
+    "clean wheel-well curves and sharp body corners, minimalist icon-like composition."
 )
 NEGATIVE_PROMPT = (
-    "blurry lines, messy background, painterly texture, gray wash, "
-    "photoreal shading, noisy details"
+    "photographic look, realistic texture, noisy micro-details, speckles, grill clutter, headlight clutter, "
+    "blurry lines, messy background, painterly texture, gray wash, anti-aliased edges, soft shading"
 )
 FORCED_MODEL = "black-forest-labs/FLUX.1-Kontext-dev"
 FALLBACK_MODELS = [
