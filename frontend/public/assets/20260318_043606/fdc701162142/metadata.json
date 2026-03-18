@@ -1,0 +1,34 @@
+{
+  "job_id": "fdc701162142",
+  "batch_run_id": "20260318_043606",
+  "status": "completed",
+  "created_at": "2026-03-18T04:36:15.983660+00:00",
+  "settings": {
+    "detail_level": "medium",
+    "num_variants": 1,
+    "cleanup_strength": "medium",
+    "log_verbosity": "high"
+  },
+  "selected_candidate": "candidate_1.png",
+  "stage_durations": {
+    "ingestion": 0.01,
+    "preprocessing": 0.003,
+    "generation": 26.0837,
+    "cleanup": 0.0506,
+    "vectorization": 0.0536
+  },
+  "artifacts": {
+    "original": "D:\\vecrorize\\frontend\\public\\assets\\20260318_043606\\fdc701162142\\input\\original.png",
+    "normalized": "D:\\vecrorize\\frontend\\public\\assets\\20260318_043606\\fdc701162142\\input\\normalized.png",
+    "grayscale": "D:\\vecrorize\\frontend\\public\\assets\\20260318_043606\\fdc701162142\\preprocessing\\grayscale.png",
+    "edge_map": "D:\\vecrorize\\frontend\\public\\assets\\20260318_043606\\fdc701162142\\preprocessing\\edge_map.png",
+    "candidates": [
+      "D:\\vecrorize\\frontend\\public\\assets\\20260318_043606\\fdc701162142\\generation\\candidate_1.png"
+    ],
+    "binary": "D:\\vecrorize\\frontend\\public\\assets\\20260318_043606\\fdc701162142\\cleanup\\binary.png",
+    "cleanup_preview": "D:\\vecrorize\\frontend\\public\\assets\\20260318_043606\\fdc701162142\\cleanup\\cleanup_preview.png",
+    "final_svg": "D:\\vecrorize\\frontend\\public\\assets\\20260318_043606\\fdc701162142\\vector\\final.svg",
+    "final_preview": "D:\\vecrorize\\frontend\\public\\assets\\20260318_043606\\fdc701162142\\vector\\final_preview.png"
+  },
+  "error": null
+}

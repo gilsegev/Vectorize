@@ -1,0 +1,127 @@
+from pathlib import Path
+from collections import deque
+
+from PIL import Image, ImageEnhance, ImageFilter, ImageOps
+
+from app.config import settings
+from app.models import CleanupStrength
+
+
+def normalize_upload(upload_path: Path, output_path: Path) -> None:
+    img = Image.open(upload_path)
+    img = ImageOps.exif_transpose(img).convert("RGB")
+    max_dimension = settings.max_dimension
+    scale = min(max_dimension / max(img.width, 1), max_dimension / max(img.height, 1), 1.0)
+    if scale < 1.0:
+        img = img.resize((int(img.width * scale), int(img.height * scale)), Image.Resampling.LANCZOS)
+    img.save(output_path, format="PNG")
+
+
+def preprocess(normalized_path: Path, grayscale_out: Path, edge_map_out: Path, detail_level: str) -> None:
+    img = Image.open(normalized_path).convert("L")
+    gray = img.filter(ImageFilter.GaussianBlur(radius=1.0))
+
+    contrast = {
+        "low": 1.0,
+        "medium": 1.2,
+        "high": 1.35,
+    }[detail_level]
+    gray = ImageEnhance.Contrast(gray).enhance(contrast)
+    gray.save(grayscale_out, format="PNG")
+
+    edges = gray.filter(ImageFilter.FIND_EDGES)
+    edges = ImageOps.autocontrast(edges)
+    edges.save(edge_map_out, format="PNG")
+
+
+def cleanup_raster(candidate_path: Path, binary_out: Path, preview_out: Path, strength: CleanupStrength) -> None:
+    img = Image.open(candidate_path).convert("L")
+
+    width, height = img.size
+    gray = list(img.getdata())
+
+    # Strict binary crush using Otsu (equivalent intent to THRESH_BINARY + OTSU).
+    histogram = [0] * 256
+    for value in gray:
+        histogram[value] += 1
+    total = width * height
+    sum_all = sum(i * h for i, h in enumerate(histogram))
+    sum_bg = 0.0
+    weight_bg = 0.0
+    max_var = -1.0
+    otsu_threshold = 127
+    for t in range(256):
+        weight_bg += histogram[t]
+        if weight_bg == 0:
+            continue
+        weight_fg = total - weight_bg
+        if weight_fg == 0:
+            break
+        sum_bg += t * histogram[t]
+        mean_bg = sum_bg / weight_bg
+        mean_fg = (sum_all - sum_bg) / weight_fg
+        between = weight_bg * weight_fg * ((mean_bg - mean_fg) ** 2)
+        if between > max_var:
+            max_var = between
+            otsu_threshold = t
+
+    # Black islands are <= threshold.
+    black = bytearray(1 if px <= otsu_threshold else 0 for px in gray)
+
+    # Connected component filtering.
+    visited = bytearray(len(black))
+    components: list[list[int]] = []
+    neighbor_deltas = (-1, 1, -width, width, -width - 1, -width + 1, width - 1, width + 1)
+    for idx, is_black in enumerate(black):
+        if not is_black or visited[idx]:
+            continue
+        queue: deque[int] = deque([idx])
+        visited[idx] = 1
+        comp: list[int] = []
+        while queue:
+            current = queue.popleft()
+            comp.append(current)
+            x = current % width
+            for delta in neighbor_deltas:
+                nxt = current + delta
+                if nxt < 0 or nxt >= len(black):
+                    continue
+                nx = nxt % width
+                if abs(nx - x) > 1:
+                    continue
+                if black[nxt] and not visited[nxt]:
+                    visited[nxt] = 1
+                    queue.append(nxt)
+        components.append(comp)
+
+    # Keep medium/large components, remove tiny islands (<40px).
+    kept = [comp for comp in components if len(comp) >= 40]
+    largest: list[int] = max(kept, key=len) if kept else []
+
+    filtered = bytearray(255 for _ in range(len(black)))
+    for comp in kept:
+        for idx in comp:
+            filtered[idx] = 0
+
+    # Smooth only the largest component to avoid melting medium text features.
+    filtered_img = Image.frombytes("L", (width, height), bytes(filtered))
+    if largest:
+        if strength == CleanupStrength.low:
+            smooth_size = 3
+        elif strength == CleanupStrength.medium:
+            smooth_size = 5
+        else:
+            smooth_size = 7
+        smoothed = filtered_img.filter(ImageFilter.MinFilter(size=smooth_size)).filter(ImageFilter.MaxFilter(size=smooth_size))
+        smoothed_px = list(smoothed.getdata())
+        final_px = bytearray(filtered)
+        for idx in largest:
+            final_px[idx] = smoothed_px[idx]
+        cleaned = Image.frombytes("L", (width, height), bytes(final_px))
+    else:
+        cleaned = filtered_img
+
+    cleaned.save(binary_out, format="PNG")
+
+    preview = ImageOps.colorize(cleaned, black="#111111", white="#f5f5f5")
+    preview.save(preview_out, format="PNG")

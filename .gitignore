@@ -1,0 +1,22 @@
+# Byte-compiled / optimized
+__pycache__/
+*.py[cod]
+
+# Python env
+.venv/
+
+# Jobs data
+jobs/
+backend/jobs/
+public/Assets/
+
+# Node
+node_modules/
+.next/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local secrets
+backend/.env

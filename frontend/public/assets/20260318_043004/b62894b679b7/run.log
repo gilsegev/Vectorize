@@ -1,0 +1,12 @@
+2026-03-18T04:30:35.221057+00:00 [LOW] Job accepted | original_filename=star.jpg upload_bytes=18392
+2026-03-18T04:30:35.231602+00:00 [MID] Pipeline started | detail_level=medium num_variants=1 cleanup_strength=medium log_verbosity=mid
+2026-03-18T04:30:35.233311+00:00 [LOW] Stage start | stage=ingestion
+2026-03-18T04:30:35.257028+00:00 [MID] Stage done | stage=ingestion original=original.png normalized=normalized.png
+2026-03-18T04:30:35.258130+00:00 [LOW] Stage start | stage=preprocessing
+2026-03-18T04:30:35.279600+00:00 [MID] Stage done | stage=preprocessing grayscale=grayscale.png edge_map=edge_map.png
+2026-03-18T04:30:35.280749+00:00 [LOW] Stage start | stage=generation
+2026-03-18T04:30:35.281868+00:00 [MID] Generation request prepared | provider=siliconflow configured_model=stabilityai/stable-diffusion-xl-base-1.0 detail_level=medium num_variants=1
+2026-03-18T04:30:37.018948+00:00 [MID] Generation provider call failed | provider=siliconflow configured_model=stabilityai/stable-diffusion-xl-base-1.0 elapsed_ms=1738.12 error=HTTPStatusError: Client error '401 Unauthorized' for url 'https://api.siliconflow.cn/v1/images/generations'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401
+2026-03-18T04:30:37.028677+00:00 [LOW] Job failed | error=HTTPStatusError: Client error '401 Unauthorized' for url 'https://api.siliconflow.cn/v1/images/generations'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401

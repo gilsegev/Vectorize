@@ -1,0 +1,33 @@
+{
+  "job_id": "821ad39d74b5",
+  "batch_run_id": "20260318_040831",
+  "status": "completed",
+  "created_at": "2026-03-18T04:08:43.635739+00:00",
+  "settings": {
+    "detail_level": "medium",
+    "num_variants": 1,
+    "cleanup_strength": "medium"
+  },
+  "selected_candidate": "candidate_1.png",
+  "stage_durations": {
+    "ingestion": 0.0123,
+    "preprocessing": 0.0024,
+    "generation": 0.0015,
+    "cleanup": 0.0058,
+    "vectorization": 0.0051
+  },
+  "artifacts": {
+    "original": "..\\frontend\\public\\assets\\20260318_040831\\821ad39d74b5\\input\\original.png",
+    "normalized": "..\\frontend\\public\\assets\\20260318_040831\\821ad39d74b5\\input\\normalized.png",
+    "grayscale": "..\\frontend\\public\\assets\\20260318_040831\\821ad39d74b5\\preprocessing\\grayscale.png",
+    "edge_map": "..\\frontend\\public\\assets\\20260318_040831\\821ad39d74b5\\preprocessing\\edge_map.png",
+    "candidates": [
+      "..\\frontend\\public\\assets\\20260318_040831\\821ad39d74b5\\generation\\candidate_1.png"
+    ],
+    "binary": "..\\frontend\\public\\assets\\20260318_040831\\821ad39d74b5\\cleanup\\binary.png",
+    "cleanup_preview": "..\\frontend\\public\\assets\\20260318_040831\\821ad39d74b5\\cleanup\\cleanup_preview.png",
+    "final_svg": "..\\frontend\\public\\assets\\20260318_040831\\821ad39d74b5\\vector\\final.svg",
+    "final_preview": "..\\frontend\\public\\assets\\20260318_040831\\821ad39d74b5\\vector\\final_preview.png"
+  },
+  "error": null
+}
