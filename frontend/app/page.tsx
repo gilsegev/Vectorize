@@ -511,6 +511,7 @@ function Artifact({
   const fullSrc = src.startsWith("http") ? src : `${API_BASE}${src}`;
   const isSvg = src.endsWith(".svg");
   const fileName = src.split("/").pop() || "artifact";
+  const openInNewTab = () => window.open(fullSrc, "_blank", "noopener,noreferrer");
 
   async function handleDownload() {
     try {
@@ -535,7 +536,11 @@ function Artifact({
   return (
     <div className="card">
       {!compact && <h3>{title}</h3>}
-      {isSvg ? <object data={fullSrc} type="image/svg+xml" width="100%" height={240} /> : <img src={fullSrc} alt={title} />}
+      {isSvg ? (
+        <object data={fullSrc} type="image/svg+xml" width="100%" height={240} onClick={openInNewTab} style={{ cursor: "pointer" }} />
+      ) : (
+        <img src={fullSrc} alt={title} onClick={openInNewTab} style={{ cursor: "pointer" }} />
+      )}
       {metrics && (
         <div className="metrics">
           <span className={`metric-pill ${metrics.nodeClass}`}>node_count: {metrics.nodeCount ?? "-"}</span>
@@ -554,13 +559,14 @@ function Artifact({
 function FocusedAsset({ title, src }: { title: string; src: string }) {
   const fullSrc = src.startsWith("http") ? src : `${API_BASE}${src}`;
   const isSvg = src.endsWith(".svg");
+  const openInNewTab = () => window.open(fullSrc, "_blank", "noopener,noreferrer");
   return (
     <div>
       <h3>{title}</h3>
       {isSvg ? (
-        <object data={fullSrc} type="image/svg+xml" width="100%" height={680} />
+        <object data={fullSrc} type="image/svg+xml" width="100%" height={680} onClick={openInNewTab} style={{ cursor: "pointer" }} />
       ) : (
-        <img src={fullSrc} alt={title} style={{ width: "100%", maxHeight: 760, objectFit: "contain" }} />
+        <img src={fullSrc} alt={title} onClick={openInNewTab} style={{ width: "100%", maxHeight: 760, objectFit: "contain", cursor: "pointer" }} />
       )}
     </div>
   );

@@ -160,10 +160,15 @@ function StorefrontAsset({ title, src }: { title: string; src: string | null }) 
   }
   const fullSrc = src.startsWith("http") ? src : `${API_BASE}${src}`;
   const isSvg = src.endsWith(".svg");
+  const openInNewTab = () => window.open(fullSrc, "_blank", "noopener,noreferrer");
   return (
     <div className="card">
       <h3>{title}</h3>
-      {isSvg ? <object data={fullSrc} type="image/svg+xml" width="100%" height={260} /> : <img src={fullSrc} alt={title} />}
+      {isSvg ? (
+        <object data={fullSrc} type="image/svg+xml" width="100%" height={260} onClick={openInNewTab} style={{ cursor: "pointer" }} />
+      ) : (
+        <img src={fullSrc} alt={title} onClick={openInNewTab} style={{ cursor: "pointer" }} />
+      )}
     </div>
   );
 }
