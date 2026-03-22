@@ -60,6 +60,48 @@ PROMPT_REGISTRY: dict[PromptProfile, dict[str, str]] = {
             "logo style, stencil effect, aggressive abstraction"
         ),
     },
+    PromptProfile.variant_a_preserve_likeness: {
+        "prompt": (
+            "clean professional pen-and-ink line drawing of the uploaded image, restrained linework, strong outer contours, "
+            "simplified interior detail, preserved facial identity, preserved adult facial individuality, preserved natural expression, "
+            "natural facial structure, selective line placement, clean silhouettes, minimal but distinctive facial features, "
+            "lightly simplified hair and clothing, smooth black ink lines on plain light background, polished hand-drawn illustration"
+        ),
+        "negative_prompt": (
+            "generic face simplification, overly idealized face, blocky hair masses, posterized facial structure, messy background, "
+            "photoreal shading, painterly texture, watercolor, gray wash, crosshatching, excessive wrinkles, too many fabric folds, "
+            "excessive hair strands, noisy micro-detail, skin texture, pores, realistic shading, sketchy scribbles, duplicated features, "
+            "deformed hands, cluttered interior lines, comic-book exaggeration, cartoon style, manga style, engraving texture, woodcut texture"
+        ),
+    },
+    PromptProfile.variant_b_selective_simplification: {
+        "prompt": (
+            "clean professional pen-and-ink line drawing of the uploaded image, restrained linework, strong outer contours, "
+            "simplified interior detail, preserve facial identity and expression, preserve distinctive facial cues, "
+            "simplify clothing to major folds only, simplify hair into clean flowing masses with limited strand detail, "
+            "selective line placement, clean silhouettes, minimal but readable facial features, polished hand-drawn editorial line art "
+            "on a plain light background"
+        ),
+        "negative_prompt": (
+            "excessive clothing wrinkles, dense hair texture, too many hair strands, busy interior lines, facial over-simplification, "
+            "generic face, blocky facial abstraction, messy background, photoreal shading, painterly texture, watercolor, gray wash, "
+            "crosshatching, skin texture, pores, realistic shading, sketchy scribbles, duplicated features, deformed hands, "
+            "comic-book exaggeration, cartoon style, manga style, engraving texture, woodcut texture"
+        ),
+    },
+    PromptProfile.variant_c_realism_leaning: {
+        "prompt": (
+            "naturalistic professional pen-and-ink drawing of the uploaded image, accurate likeness, restrained simplification, "
+            "clean contour emphasis, preserved facial identity, preserved natural expression, subtle interior detail, "
+            "realistic facial structure, lightly simplified hair, lightly simplified clothing, smooth black ink contours, "
+            "polished hand-drawn line illustration on a plain light background"
+        ),
+        "negative_prompt": (
+            "cartoon simplification, exaggerated features, generic face, posterized look, graphic novel style, comic-book inking, "
+            "manga style, logo style, stencil effect, excessive black fill, messy background, photoreal shading, painterly texture, "
+            "watercolor, gray wash, crosshatching, dense skin texture, sketchy scribbles"
+        ),
+    },
 }
 
 

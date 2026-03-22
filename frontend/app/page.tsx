@@ -6,7 +6,14 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000";
 
 type JobStatus = "processing" | "waiting_for_selection" | "completed" | "failed";
 type FabricationStyle = "precision_inlay" | "bold_signage" | "abstract_art";
-type PromptProfile = "legacy" | "base_professional_pen" | "stronger_polish" | "realism_preserving";
+type PromptProfile =
+  | "legacy"
+  | "base_professional_pen"
+  | "stronger_polish"
+  | "realism_preserving"
+  | "variant_a_preserve_likeness"
+  | "variant_b_selective_simplification"
+  | "variant_c_realism_leaning";
 type SelectionMode = "manual" | "auto";
 
 type JobPayload = {
@@ -67,6 +74,10 @@ const PRESETS: Record<FabricationStyle, { label: string; inking_denoise: number;
   abstract_art: { label: "Abstract Art", inking_denoise: 0.65, turdsize: 400, opttolerance: 2.0 },
 };
 const BENCHMARK_TAG_OPTIONS = [
+  "control-r1-base-prof-pen",
+  "control-variant-a",
+  "control-variant-b",
+  "control-variant-c",
   "round1-base-prof-pen",
   "round1-legacy-baseline",
   "round1-stronger-polish",
@@ -366,6 +377,9 @@ export default function HomePage() {
                 <option value="base_professional_pen">Base Professional Pen</option>
                 <option value="stronger_polish">Stronger Polish</option>
                 <option value="realism_preserving">Realism Preserving</option>
+                <option value="variant_a_preserve_likeness">Variant A Preserve Likeness</option>
+                <option value="variant_b_selective_simplification">Variant B Selective Simplification</option>
+                <option value="variant_c_realism_leaning">Variant C Realism Leaning</option>
               </select>
             </div>
             <div>

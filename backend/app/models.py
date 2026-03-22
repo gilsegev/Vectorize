@@ -40,6 +40,9 @@ class PromptProfile(str, Enum):
     base_professional_pen = "base_professional_pen"
     stronger_polish = "stronger_polish"
     realism_preserving = "realism_preserving"
+    variant_a_preserve_likeness = "variant_a_preserve_likeness"
+    variant_b_selective_simplification = "variant_b_selective_simplification"
+    variant_c_realism_leaning = "variant_c_realism_leaning"
 
 
 class SelectionMode(str, Enum):
