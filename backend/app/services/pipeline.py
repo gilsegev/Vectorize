@@ -122,6 +122,7 @@ class PipelineService:
                 total_generation_ms=generation_trace.get("total_generation_ms"),
                 num_variants_requested=generation_trace.get("num_variants_requested"),
                 num_variants_generated=generation_trace.get("num_variants_generated"),
+                variant_errors=" | ".join(generation_trace.get("variant_errors", [])[:3]),
                 prompt_profile=generation_trace.get("prompt_profile"),
                 prompt_version=generation_trace.get("prompt_version"),
             )

@@ -53,10 +53,14 @@ def _post_generation_with_retries(client: httpx.Client, payload: dict[str, Any],
             response = client.post(f"{settings.siliconflow_base_url}/images/generations", json=payload)
             if response.status_code >= 400:
                 body = response.text[:700].replace("\n", " ")
+                retryable = response.status_code >= 500 or response.status_code in {408, 409, 425, 429}
+                if retryable:
+                    last_exc = RuntimeError(f"SiliconFlow transient error {response.status_code} (model={model_id}): {body}")
+                    if attempt < 3:
+                        time.sleep(float(attempt))
+                        continue
                 raise RuntimeError(f"SiliconFlow error {response.status_code} (model={model_id}): {body}")
             return response.json()
-        except RuntimeError:
-            raise
         except (httpx.RemoteProtocolError, httpx.ReadTimeout, httpx.ConnectError, httpx.WriteError) as exc:
             last_exc = exc
             if attempt < 3:
@@ -164,7 +168,8 @@ def generate_candidates(
     with httpx.Client(timeout=timeout) as client:
         client.headers.update(headers)
         model_id = _resolve_model_id(client)
-        for _ in range(num_variants):
+        variant_errors: list[str] = []
+        for variant_idx in range(1, num_variants + 1):
             payload = {
                 "model": model_id,
                 "prompt": resolved_prompt,
@@ -176,7 +181,15 @@ def generate_candidates(
                 "prompt_enhancement": False,
                 "output_format": "png",
             }
-            parsed_payloads.append(_post_generation_with_retries(client, payload, model_id))
+            try:
+                parsed_payloads.append(_post_generation_with_retries(client, payload, model_id))
+            except Exception as exc:  # noqa: BLE001
+                variant_errors.append(f"variant_{variant_idx}:{exc}")
+                continue
+        if not parsed_payloads:
+            raise RuntimeError(
+                f"All generation variant requests failed (model={model_id}): {' | '.join(variant_errors[:4]) or 'unknown error'}"
+            )
     provider_ms = round((time.perf_counter() - provider_started) * 1000, 2)
 
     outputs: list[Path] = []
@@ -199,6 +212,7 @@ def generate_candidates(
         "detail_level": detail_level,
         "num_variants_requested": num_variants,
         "num_variants_generated": len(outputs),
+        "variant_errors": variant_errors if settings.siliconflow_api_key else [],
         "steps": steps,
         "guidance_scale": cfg_scale,
         "strength": strength,

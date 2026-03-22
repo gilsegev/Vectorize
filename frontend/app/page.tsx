@@ -66,6 +66,15 @@ const PRESETS: Record<FabricationStyle, { label: string; inking_denoise: number;
   bold_signage: { label: "Bold Signage", inking_denoise: 0.5, turdsize: 200, opttolerance: 1.2 },
   abstract_art: { label: "Abstract Art", inking_denoise: 0.65, turdsize: 400, opttolerance: 2.0 },
 };
+const BENCHMARK_TAG_OPTIONS = [
+  "round1-base-prof-pen",
+  "round1-legacy-baseline",
+  "round1-stronger-polish",
+  "round1-realism-preserving",
+  "round2-cleanup-threshold",
+  "round2-cleanup-component",
+  "round2-cleanup-morph",
+];
 
 export default function HomePage() {
   const [file, setFile] = useState<File | null>(null);
@@ -368,7 +377,12 @@ export default function HomePage() {
             </div>
             <div>
               <label className="label">Benchmark Tag</label>
-              <input value={benchmarkTag} onChange={(e) => setBenchmarkTag(e.target.value)} placeholder="round1-base" />
+              <input list="benchmark-tag-options" value={benchmarkTag} onChange={(e) => setBenchmarkTag(e.target.value)} placeholder="round1-base" />
+              <datalist id="benchmark-tag-options">
+                {BENCHMARK_TAG_OPTIONS.map((tag) => (
+                  <option key={tag} value={tag} />
+                ))}
+              </datalist>
             </div>
             <div>
               <label className="label">Source Image ID</label>
