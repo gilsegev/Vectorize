@@ -7,6 +7,15 @@ from app.config import settings
 from app.models import CleanupStrength
 
 
+def _derive_phase1_subject_mask(normalized_path: Path, mask_out: Path) -> None:
+    rgb = Image.open(normalized_path).convert("RGB")
+    gray = ImageOps.grayscale(rgb)
+    # White-ish background stays background; subject region becomes foreground.
+    mask = gray.point(lambda p: 255 if p < 245 else 0, mode="L")
+    mask = mask.filter(ImageFilter.MaxFilter(size=5)).filter(ImageFilter.MinFilter(size=5))
+    mask.save(mask_out, format="PNG")
+
+
 def normalize_upload(upload_path: Path, output_path: Path) -> None:
     img = Image.open(upload_path)
     img = ImageOps.exif_transpose(img).convert("RGB")
@@ -17,7 +26,13 @@ def normalize_upload(upload_path: Path, output_path: Path) -> None:
     img.save(output_path, format="PNG")
 
 
-def preprocess(normalized_path: Path, grayscale_out: Path, edge_map_out: Path, detail_level: str) -> None:
+def preprocess(
+    normalized_path: Path,
+    grayscale_out: Path,
+    edge_map_out: Path,
+    detail_level: str,
+    subject_mask_out: Path | None = None,
+) -> None:
     img = Image.open(normalized_path).convert("L")
     gray = img.filter(ImageFilter.GaussianBlur(radius=1.0))
 
@@ -32,9 +47,17 @@ def preprocess(normalized_path: Path, grayscale_out: Path, edge_map_out: Path, d
     edges = gray.filter(ImageFilter.FIND_EDGES)
     edges = ImageOps.autocontrast(edges)
     edges.save(edge_map_out, format="PNG")
+    if subject_mask_out is not None:
+        _derive_phase1_subject_mask(normalized_path, subject_mask_out)
 
 
-def cleanup_raster(candidate_path: Path, binary_out: Path, preview_out: Path, strength: CleanupStrength) -> None:
+def cleanup_raster(
+    candidate_path: Path,
+    binary_out: Path,
+    preview_out: Path,
+    strength: CleanupStrength,
+    subject_mask_path: Path | None = None,
+) -> None:
     img = Image.open(candidate_path).convert("L")
 
     width, height = img.size

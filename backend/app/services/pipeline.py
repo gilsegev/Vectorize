@@ -6,7 +6,7 @@ from threading import Thread
 from app.config import settings as app_settings
 from app.models import JobSettings, JobStatus
 from app.services.image_ops import cleanup_raster, normalize_upload, preprocess
-from app.services.siliconflow import FORCED_MODEL, NEGATIVE_PROMPT, PROMPT, generate_candidates
+from app.services.siliconflow import FORCED_MODEL, NEGATIVE_PROMPT, PROMPT, generate_candidates, refine_candidate_with_inking
 from app.services.storage import (
     append_run_log,
     job_dir,
@@ -112,7 +112,6 @@ class PipelineService:
                 steps=generation_trace.get("steps"),
                 guidance_scale=generation_trace.get("guidance_scale"),
                 strength=generation_trace.get("strength"),
-                controlnet_model=generation_trace.get("controlnet_model"),
             )
             append_run_log(job_id, "high", "Candidate files", files=",".join([p.name for p in candidates]))
 
@@ -142,8 +141,39 @@ class PipelineService:
             append_run_log(job_id, "mid", "Finalize pipeline", selected_candidate=candidate_name)
 
             start = time.perf_counter()
+            append_run_log(job_id, "low", "Stage start", stage="inking")
+            try:
+                refined_path, inking_trace = self._stage_inking(job_id, candidate_path)
+            except Exception as ink_exc:
+                append_run_log(
+                    job_id,
+                    "mid",
+                    "Inking provider call failed",
+                    provider=("siliconflow" if app_settings.siliconflow_api_key else "local_mock"),
+                    configured_model=(FORCED_MODEL if app_settings.siliconflow_api_key else app_settings.siliconflow_model),
+                    elapsed_ms=round((time.perf_counter() - start) * 1000, 2),
+                    error=f"{ink_exc.__class__.__name__}: {ink_exc}",
+                )
+                raise
+            update_stage_duration(job_id, "inking", time.perf_counter() - start)
+            update_artifacts(job_id, refined=str(refined_path))
+            append_run_log(
+                job_id,
+                "mid",
+                "Inking provider call",
+                provider=inking_trace.get("provider"),
+                configured_model=inking_trace.get("configured_model"),
+                resolved_model=inking_trace.get("resolved_model"),
+                denoising_strength=inking_trace.get("denoising_strength"),
+                controlnet_model=inking_trace.get("controlnet_model"),
+                provider_call_ms=inking_trace.get("provider_call_ms"),
+                total_inking_ms=inking_trace.get("total_inking_ms"),
+            )
+            append_run_log(job_id, "mid", "Stage done", stage="inking", refined=refined_path.name)
+
+            start = time.perf_counter()
             append_run_log(job_id, "low", "Stage start", stage="cleanup")
-            binary_path, preview_path = self._stage_cleanup(job_id, candidate_path, settings)
+            binary_path, preview_path = self._stage_cleanup(job_id, refined_path, settings)
             update_stage_duration(job_id, "cleanup", time.perf_counter() - start)
             update_artifacts(job_id, binary=str(binary_path), cleanup_preview=str(preview_path))
             append_run_log(job_id, "mid", "Stage done", stage="cleanup", binary=binary_path.name, preview=preview_path.name)
@@ -174,7 +204,8 @@ class PipelineService:
         normalized = root / "02_input_normalized.png"
         grayscale = root / "03_preprocess_grayscale.png"
         edge_map = root / "04_preprocess_edge_map.png"
-        preprocess(normalized, grayscale, edge_map, settings.detail_level.value)
+        subject_mask = root / "05_preprocess_subject_mask.png"
+        preprocess(normalized, grayscale, edge_map, settings.detail_level.value, subject_mask)
         return grayscale, edge_map
 
     def _stage_generate(self, job_id: str, settings: JobSettings) -> tuple[list[Path], dict]:
@@ -188,11 +219,19 @@ class PipelineService:
             num_variants=settings.num_variants,
         )
 
+    def _stage_inking(self, job_id: str, candidate_path: Path) -> tuple[Path, dict]:
+        root = job_dir(job_id)
+        subject_mask = root / "05_preprocess_subject_mask.png"
+        refined = root / "05_generation_refined.png"
+        trace = refine_candidate_with_inking(candidate_path, subject_mask, refined)
+        return refined, trace
+
     def _stage_cleanup(self, job_id: str, candidate_path: Path, settings: JobSettings) -> tuple[Path, Path]:
         root = job_dir(job_id)
         binary = root / "06_cleanup_binary.png"
         preview = root / "07_cleanup_preview.png"
-        cleanup_raster(candidate_path, binary, preview, settings.cleanup_strength)
+        subject_mask = root / "05_preprocess_subject_mask.png"
+        cleanup_raster(candidate_path, binary, preview, settings.cleanup_strength, subject_mask)
         return binary, preview
 
     def _stage_vectorize(self, job_id: str, binary_path: Path) -> tuple[Path, Path]:

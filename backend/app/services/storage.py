@@ -175,6 +175,7 @@ def build_status_response(job_id: str) -> JobStatusResponse:
         normalized=artifacts.get("normalized"),
         grayscale=artifacts.get("grayscale"),
         edge_map=artifacts.get("edge_map"),
+        refined=artifacts.get("refined"),
         binary=artifacts.get("binary"),
         cleanup_preview=artifacts.get("cleanup_preview"),
         final_svg=artifacts.get("final_svg"),

@@ -9,8 +9,7 @@ from PIL import Image, ImageOps
 
 POTRACE_TURDSIZE = "200"
 POTRACE_ALPHAMAX = "0.8"
-STAR_OPT = "0.9"
-TEXT_OPT = "0.4"
+POTRACE_OPTTOLERANCE = "1.0"
 MIN_TEXT_COMPONENT = 40
 
 
@@ -50,7 +49,7 @@ def _mask_for_components(width: int, height: int, components: list[list[int]]) -
     return Image.frombytes("L", (width, height), bytes(px))
 
 
-def _run_potrace(mask: Image.Image, out_svg: Path, opt_tolerance: str) -> None:
+def _run_potrace(mask: Image.Image, out_svg: Path) -> None:
     explicit_candidates = [
         Path("D:/tools/potrace/potrace-1.16.win64/potrace.exe"),
         Path("D:/tools/potrace/potrace-1.16.win32/potrace.exe"),
@@ -76,7 +75,7 @@ def _run_potrace(mask: Image.Image, out_svg: Path, opt_tolerance: str) -> None:
             "--alphamax",
             POTRACE_ALPHAMAX,
             "--opttolerance",
-            opt_tolerance,
+            POTRACE_OPTTOLERANCE,
             "-o",
             str(out_svg),
         ]
@@ -164,8 +163,8 @@ def vectorize(binary_path: Path, svg_out: Path, preview_out: Path) -> None:
     with tempfile.TemporaryDirectory() as tmpdir:
         star_svg = Path(tmpdir) / "star.svg"
         text_svg = Path(tmpdir) / "text.svg"
-        _run_potrace(star_mask, star_svg, STAR_OPT)
-        _run_potrace(text_mask, text_svg, TEXT_OPT)
+        _run_potrace(star_mask, star_svg)
+        _run_potrace(text_mask, text_svg)
         _merge_svg(width, height, _extract_svg_paths(star_svg), _extract_svg_paths(text_svg), svg_out)
 
     preview = ImageOps.colorize(img, black="#000000", white="#ffffff")

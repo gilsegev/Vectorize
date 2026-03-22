@@ -1,4 +1,5 @@
 import base64
+import shutil
 import time
 from pathlib import Path
 from typing import Any
@@ -9,15 +10,21 @@ from PIL import Image, ImageEnhance, ImageFilter, ImageOps
 from app.config import settings
 
 PROMPT = (
-    "Illustration-first flat 2D vector style of a truck with bold weighted black lines, geometric abstraction, "
-    "solid flat fills, pure black and white only, no anti-aliasing, no gradients, no shading, "
-    "clean wheel-well curves and sharp body corners, minimalist icon-like composition."
+    "Technical decal style truck illustration with bold weighted black lines and structured internal features, "
+    "distinct headlights, clearly separated grille bars, and white cutout details, "
+    "flat 2D vector look, pure black and white only, no anti-aliasing, no gradients, no shading."
 )
 NEGATIVE_PROMPT = (
+    "mesh, honeycomb, dots, stippling, photographic texture, realistic reflections, tiny details, gradients, "
+    "noise, grain, dust, grit, messy, blurry, low-res, speckled, "
     "photographic look, realistic texture, noisy micro-details, speckles, grill clutter, headlight clutter, "
     "blurry lines, messy background, painterly texture, gray wash, anti-aliased edges, soft shading"
 )
 FORCED_MODEL = "black-forest-labs/FLUX.1-Kontext-dev"
+INKING_PROMPT = (
+    "Refined professional vector line art, uniform line weights, bold black ink outlines, "
+    "clean Ligne claire style, flat 2D illustration, zero noise, high-contrast, perfectly smooth geometric paths."
+)
 FALLBACK_MODELS = [
     "black-forest-labs/FLUX.1-Kontext-dev",
     "black-forest-labs/FLUX.1-Kontext-pro",
@@ -26,9 +33,6 @@ FALLBACK_MODELS = [
     "stabilityai/stable-diffusion-3.5-large",
     "stabilityai/stable-diffusion-3-medium",
 ]
-CONTROLNET_MODEL = "lllyasviel/control_v11p_sd15_lineart"
-
-
 def _encode_image(path: Path) -> str:
     return base64.b64encode(path.read_bytes()).decode("ascii")
 
@@ -46,6 +50,42 @@ def _download_image_from_url(client: httpx.Client, url: str, out_path: Path) -> 
     response = client.get(url, timeout=120.0)
     response.raise_for_status()
     out_path.write_bytes(response.content)
+
+
+def _post_generation_with_retries(client: httpx.Client, payload: dict[str, Any], model_id: str) -> dict[str, Any]:
+    last_exc: Exception | None = None
+    for attempt in range(1, 4):
+        try:
+            response = client.post(f"{settings.siliconflow_base_url}/images/generations", json=payload)
+            if response.status_code >= 400:
+                body = response.text[:700].replace("\n", " ")
+                raise RuntimeError(f"SiliconFlow error {response.status_code} (model={model_id}): {body}")
+            return response.json()
+        except RuntimeError:
+            raise
+        except (httpx.RemoteProtocolError, httpx.ReadTimeout, httpx.ConnectError, httpx.WriteError) as exc:
+            last_exc = exc
+            if attempt < 3:
+                time.sleep(float(attempt))
+                continue
+            break
+
+    raise RuntimeError(
+        f"SiliconFlow generation request failed after retries (model={model_id}): "
+        f"{last_exc.__class__.__name__ if last_exc else 'unknown error'}: {last_exc}"
+    )
+
+
+def _extract_first_image_payload(parsed: dict[str, Any]) -> tuple[str | None, str | None]:
+    images = []
+    if isinstance(parsed.get("images"), list):
+        images = parsed["images"]
+    elif isinstance(parsed.get("data"), list):
+        images = parsed["data"]
+    if not images:
+        raise RuntimeError(f"Unexpected SiliconFlow response schema: {str(parsed)[:400]}")
+    img = images[0]
+    return (img.get("b64_json") or img.get("image"), img.get("url"))
 
 
 def _resolve_model_id(client: httpx.Client) -> str:
@@ -113,12 +153,14 @@ def generate_candidates(
     headers = {
         "Authorization": f"Bearer {settings.siliconflow_api_key}",
         "Content-Type": "application/json",
+        "Connection": "close",
     }
 
     provider_started = time.perf_counter()
     model_id = FORCED_MODEL
     parsed_payloads: list[dict[str, Any]] = []
-    with httpx.Client(timeout=120.0) as client:
+    timeout = httpx.Timeout(connect=20.0, read=180.0, write=30.0, pool=30.0)
+    with httpx.Client(timeout=timeout) as client:
         client.headers.update(headers)
         model_id = _resolve_model_id(client)
         for _ in range(num_variants):
@@ -126,38 +168,20 @@ def generate_candidates(
                 "model": model_id,
                 "prompt": PROMPT,
                 "negative_prompt": NEGATIVE_PROMPT,
-                # Match vectorize_old "Kontext image-edit" payload path.
+                # Keep payload minimal for current SiliconFlow image-edit schema.
                 "image": data_url,
-                "input_image": data_url,
-                "control_image": data_url,
-                "reference_image": data_url,
-                "controlnet_model": CONTROLNET_MODEL,
                 "guidance_scale": cfg_scale,
-                "denoising_strength": strength,
                 "num_inference_steps": steps,
                 "prompt_enhancement": False,
                 "output_format": "png",
             }
-            response = client.post(f"{settings.siliconflow_base_url}/images/generations", headers=headers, json=payload)
-            if response.status_code >= 400:
-                body = response.text[:700].replace("\n", " ")
-                raise RuntimeError(f"SiliconFlow error {response.status_code} (model={model_id}): {body}")
-            parsed_payloads.append(response.json())
+            parsed_payloads.append(_post_generation_with_retries(client, payload, model_id))
     provider_ms = round((time.perf_counter() - provider_started) * 1000, 2)
 
     outputs: list[Path] = []
     with httpx.Client(timeout=120.0) as client:
         for idx, parsed in enumerate(parsed_payloads, start=1):
-            images = []
-            if isinstance(parsed.get("images"), list):
-                images = parsed["images"]
-            elif isinstance(parsed.get("data"), list):
-                images = parsed["data"]
-            if not images:
-                raise RuntimeError(f"Unexpected SiliconFlow response schema: {str(parsed)[:400]}")
-            img = images[0]
-            b64 = img.get("b64_json") or img.get("image")
-            url = img.get("url")
+            b64, url = _extract_first_image_payload(parsed)
             if not b64 and not url:
                 raise RuntimeError("SiliconFlow response missing image payload")
             out_path = out_dir / f"candidate_{idx}.png"
@@ -177,10 +201,97 @@ def generate_candidates(
         "steps": steps,
         "guidance_scale": cfg_scale,
         "strength": strength,
-        "controlnet_model": CONTROLNET_MODEL,
         "prompt": PROMPT,
         "negative_prompt": NEGATIVE_PROMPT,
         "provider_call_ms": provider_ms,
         "total_generation_ms": round((time.perf_counter() - total_started) * 1000, 2),
     }
     return outputs, trace
+
+
+def refine_candidate_with_inking(candidate_path: Path, subject_mask_path: Path | None, refined_out: Path) -> dict[str, Any]:
+    started = time.perf_counter()
+    refined_out.parent.mkdir(parents=True, exist_ok=True)
+
+    if not settings.siliconflow_api_key:
+        shutil.copyfile(candidate_path, refined_out)
+        return {
+            "provider": "local_mock",
+            "configured_model": FORCED_MODEL,
+            "resolved_model": "local_mock_renderer",
+            "denoising_strength": 0.42,
+            "controlnet_model": "none",
+            "prompt": INKING_PROMPT,
+            "provider_call_ms": 0.0,
+            "total_inking_ms": round((time.perf_counter() - started) * 1000, 2),
+            "reason": "SILICONFLOW_API_KEY missing",
+        }
+
+    headers = {
+        "Authorization": f"Bearer {settings.siliconflow_api_key}",
+        "Content-Type": "application/json",
+        "Connection": "close",
+    }
+    timeout = httpx.Timeout(connect=20.0, read=180.0, write=30.0, pool=30.0)
+
+    candidate_data_url = _image_data_url(candidate_path)
+    control_data_url = _image_data_url(subject_mask_path) if subject_mask_path and subject_mask_path.exists() else None
+    controlnet_models = [
+        "lllyasviel/control_v11p_sd15_canny",
+        "lllyasviel/control_v11f1p_sd15_depth",
+    ]
+
+    provider_started = time.perf_counter()
+    model_id = FORCED_MODEL
+    parsed: dict[str, Any] | None = None
+    last_error: Exception | None = None
+    with httpx.Client(timeout=timeout) as client:
+        client.headers.update(headers)
+        model_id = _resolve_model_id(client)
+        for controlnet_model in controlnet_models:
+            payload = {
+                "model": model_id,
+                "prompt": INKING_PROMPT,
+                "image": candidate_data_url,
+                "input_image": candidate_data_url,
+                "guidance_scale": 10.0,
+                "num_inference_steps": 26,
+                "denoising_strength": 0.42,
+                "prompt_enhancement": False,
+                "output_format": "png",
+            }
+            if control_data_url:
+                payload["control_image"] = control_data_url
+                payload["reference_image"] = control_data_url
+                payload["controlnet_model"] = controlnet_model
+            try:
+                parsed = _post_generation_with_retries(client, payload, model_id)
+                selected_controlnet = controlnet_model if control_data_url else "none"
+                break
+            except Exception as exc:  # noqa: BLE001
+                last_error = exc
+                parsed = None
+                selected_controlnet = controlnet_model
+        if parsed is None:
+            raise RuntimeError(f"Inking pass failed for all controlnet variants: {last_error}")
+    provider_ms = round((time.perf_counter() - provider_started) * 1000, 2)
+
+    b64, url = _extract_first_image_payload(parsed)
+    if not b64 and not url:
+        raise RuntimeError("SiliconFlow inking response missing image payload")
+    if b64:
+        _decode_base64_image(b64, refined_out)
+    else:
+        with httpx.Client(timeout=120.0) as client:
+            _download_image_from_url(client, str(url), refined_out)
+
+    return {
+        "provider": "siliconflow",
+        "configured_model": FORCED_MODEL,
+        "resolved_model": model_id,
+        "denoising_strength": 0.42,
+        "controlnet_model": selected_controlnet,
+        "prompt": INKING_PROMPT,
+        "provider_call_ms": provider_ms,
+        "total_inking_ms": round((time.perf_counter() - started) * 1000, 2),
+    }

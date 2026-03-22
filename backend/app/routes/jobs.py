@@ -76,7 +76,7 @@ def get_job(job_id: str) -> dict:
 
     payload = response.model_dump()
     artifacts = payload["artifacts"]
-    for key in ["original", "normalized", "grayscale", "edge_map", "binary", "cleanup_preview", "final_svg", "final_preview"]:
+    for key in ["original", "normalized", "grayscale", "edge_map", "refined", "binary", "cleanup_preview", "final_svg", "final_preview"]:
         artifacts[key] = _artifact_to_url(job_id, artifacts.get(key))
     artifacts["candidates"] = [_artifact_to_url(job_id, p) for p in artifacts.get("candidates", [])]
     return payload

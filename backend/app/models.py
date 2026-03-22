@@ -46,6 +46,7 @@ class ArtifactMap(BaseModel):
     normalized: str | None = None
     grayscale: str | None = None
     edge_map: str | None = None
+    refined: str | None = None
     binary: str | None = None
     cleanup_preview: str | None = None
     final_svg: str | None = None
