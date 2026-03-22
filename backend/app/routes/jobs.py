@@ -10,21 +10,29 @@ from app.config import settings
 from app.models import (
     CleanupStrength,
     DetailLevel,
+    FabricationStyle,
     JobCreateResponse,
     JobSettings,
     JobStatus,
     LogVerbosity,
+    RefineRerunRequest,
     SelectVariantRequest,
+    SourceFrontend,
 )
 from app.services.pipeline import pipeline_service
-from app.services.storage import build_status_response, create_job, job_dir, log_path, read_metadata
+from app.services.storage import build_status_response, create_job, job_dir, log_path, read_metadata, update_artifacts
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 
 ALLOWED_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp"}
+FABRICATION_PRESETS: dict[FabricationStyle, tuple[float, int, float]] = {
+    FabricationStyle.precision_inlay: (0.35, 80, 0.5),
+    FabricationStyle.bold_signage: (0.50, 200, 1.2),
+    FabricationStyle.abstract_art: (0.65, 400, 2.0),
+}
 
 
-def _artifact_to_url(job_id: str, artifact: str | None) -> str | None:
+def _artifact_to_url(job_id: str, artifact: str | None, *, scope: str = "workbench") -> str | None:
     if not artifact:
         return None
     file_path = Path(artifact)
@@ -34,7 +42,7 @@ def _artifact_to_url(job_id: str, artifact: str | None) -> str | None:
         relative_part = str(relative).replace("\\", "/")
     except Exception:
         relative_part = file_path.name
-    return f"/api/jobs/{job_id}/files/{relative_part}"
+    return f"/api/jobs/{job_id}/files/{relative_part}?scope={scope}"
 
 
 @router.post("", response_model=JobCreateResponse)
@@ -44,6 +52,11 @@ async def create_job_endpoint(
     num_variants: int = Form(1),
     cleanup_strength: CleanupStrength = Form(CleanupStrength.medium),
     log_verbosity: LogVerbosity = Form(LogVerbosity.mid),
+    fabrication_style: FabricationStyle = Form(FabricationStyle.bold_signage),
+    inking_denoise: float | None = Form(None),
+    potrace_turdsize: int | None = Form(None),
+    potrace_opttolerance: float | None = Form(None),
+    source_frontend: SourceFrontend = Form(SourceFrontend.workbench),
 ) -> JobCreateResponse:
     ext = Path(file.filename or "").suffix.lower()
     if ext not in ALLOWED_EXTENSIONS:
@@ -56,29 +69,64 @@ async def create_job_endpoint(
     if len(contents) > max_bytes:
         raise HTTPException(status_code=413, detail="File too large")
 
+    preset_denoise, preset_turdsize, preset_opttol = FABRICATION_PRESETS[fabrication_style]
     settings_payload = JobSettings(
         detail_level=detail_level,
         num_variants=num_variants,
         cleanup_strength=cleanup_strength,
         log_verbosity=log_verbosity,
+        fabrication_style=fabrication_style,
+        inking_denoise=(inking_denoise if inking_denoise is not None else preset_denoise),
+        potrace_turdsize=(potrace_turdsize if potrace_turdsize is not None else preset_turdsize),
+        potrace_opttolerance=(potrace_opttolerance if potrace_opttolerance is not None else preset_opttol),
     )
-    job_id = create_job(settings_payload)
+    job_id = create_job(settings_payload, source_frontend=source_frontend)
     pipeline_service.start_job(job_id, contents, file.filename or "input")
     return JobCreateResponse(job_id=job_id, status=JobStatus.processing)
 
 
 @router.get("/{job_id}")
-def get_job(job_id: str) -> dict:
+def get_job(job_id: str, view: str = "workbench") -> dict:
     try:
         response = build_status_response(job_id)
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
     payload = response.model_dump()
+    scope = "workbench" if view == "workbench" else "storefront"
     artifacts = payload["artifacts"]
-    for key in ["original", "normalized", "grayscale", "edge_map", "refined", "binary", "cleanup_preview", "final_svg", "final_preview"]:
-        artifacts[key] = _artifact_to_url(job_id, artifacts.get(key))
-    artifacts["candidates"] = [_artifact_to_url(job_id, p) for p in artifacts.get("candidates", [])]
+    for key in [
+        "original",
+        "normalized",
+        "grayscale",
+        "edge_map",
+        "subject_mask",
+        "refined",
+        "binary",
+        "cleanup_preview",
+        "final_svg",
+        "final_preview",
+        "package_zip",
+    ]:
+        artifacts[key] = _artifact_to_url(job_id, artifacts.get(key), scope=scope)
+    artifacts["candidates"] = [_artifact_to_url(job_id, p, scope=scope) for p in artifacts.get("candidates", [])]
+    artifacts["refined_candidates"] = [_artifact_to_url(job_id, p, scope=scope) for p in artifacts.get("refined_candidates", [])]
+
+    if view == "storefront":
+        return {
+            "job_id": payload["job_id"],
+            "status": payload["status"],
+            "batch_run_id": payload.get("batch_run_id"),
+            "source_frontend": payload.get("source_frontend"),
+            "settings": {"fabrication_style": payload.get("settings", {}).get("fabrication_style")},
+            "cnc_metrics": payload.get("cnc_metrics", {}),
+            "artifacts": {
+                "art": artifacts.get("final_preview"),
+                "toolpath_svg": artifacts.get("final_svg"),
+                "package_zip": artifacts.get("package_zip"),
+            },
+            "error": payload.get("error"),
+        }
     return payload
 
 
@@ -116,6 +164,29 @@ def download_svg(job_id: str):
         raise HTTPException(status_code=404, detail="SVG not found")
 
     return FileResponse(final_svg, media_type="image/svg+xml", filename="final.svg")
+
+
+@router.get("/{job_id}/download/package")
+def download_package(job_id: str):
+    try:
+        metadata = read_metadata(job_id)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    if metadata["status"] != JobStatus.completed:
+        raise HTTPException(status_code=409, detail="Job is not completed")
+
+    artifacts = metadata.get("artifacts", {})
+    package_zip = artifacts.get("package_zip")
+    if not package_zip:
+        root = job_dir(job_id)
+        package_path = root / f"{job_id}_Package.zip"
+        if package_path.exists():
+            package_zip = str(package_path)
+            update_artifacts(job_id, package_zip=package_zip)
+    if not package_zip or not Path(package_zip).exists():
+        raise HTTPException(status_code=404, detail="Package zip not found")
+    return FileResponse(package_zip, media_type="application/zip", filename=f"{job_id}_Package.zip")
 
 
 @router.get("/{job_id}/log")
@@ -162,7 +233,15 @@ def open_output_dir(job_id: str):
 
 
 @router.get("/{job_id}/files/{artifact_path:path}")
-def get_artifact_file(job_id: str, artifact_path: str):
+def get_artifact_file(job_id: str, artifact_path: str, scope: str = "storefront"):
+    try:
+        metadata = read_metadata(job_id)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    if metadata.get("source_frontend") == SourceFrontend.storefront and scope != "workbench":
+        allowed = {"09_vector_final_preview.png", "08_vector_final.svg", f"{job_id}_Package.zip"}
+        if Path(artifact_path).name not in allowed:
+            raise HTTPException(status_code=403, detail="Asset is restricted in storefront view")
     root = job_dir(job_id).resolve()
     file_path = (root / artifact_path).resolve()
     try:
@@ -172,3 +251,15 @@ def get_artifact_file(job_id: str, artifact_path: str):
     if not file_path.exists() or not file_path.is_file():
         raise HTTPException(status_code=404, detail="File not found")
     return FileResponse(str(file_path))
+
+
+@router.post("/{job_id}/refine-rerun")
+def refine_rerun(job_id: str, request: RefineRerunRequest) -> dict[str, str]:
+    try:
+        metadata = read_metadata(job_id)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    if metadata.get("status") not in [JobStatus.completed, JobStatus.failed]:
+        raise HTTPException(status_code=409, detail="Job must be completed or failed before rerun")
+    pipeline_service.refine_and_rerun(job_id, request.inking_denoise)
+    return {"status": JobStatus.processing}

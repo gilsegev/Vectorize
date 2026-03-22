@@ -10,20 +10,20 @@ from PIL import Image, ImageEnhance, ImageFilter, ImageOps
 from app.config import settings
 
 PROMPT = (
-    "Technical decal style truck illustration with bold weighted black lines and structured internal features, "
-    "distinct headlights, clearly separated grille bars, and white cutout details, "
-    "flat 2D vector look, pure black and white only, no anti-aliasing, no gradients, no shading."
+    "Convert the provided input image into subject-preserving decal-ready line art. "
+    "Keep the same subject identity, pose, silhouette, and main internal forms from the uploaded image. "
+    "Render in clean black-and-white flat 2D vector style with bold outlines, no gradients, no shading, no anti-aliasing."
 )
 NEGATIVE_PROMPT = (
+    "different subject, changed object category, swapped anatomy, added vehicle parts, added text/logo, "
     "mesh, honeycomb, dots, stippling, photographic texture, realistic reflections, tiny details, gradients, "
-    "noise, grain, dust, grit, messy, blurry, low-res, speckled, "
-    "photographic look, realistic texture, noisy micro-details, speckles, grill clutter, headlight clutter, "
-    "blurry lines, messy background, painterly texture, gray wash, anti-aliased edges, soft shading"
+    "noise, grain, dust, grit, messy, blurry, low-res, speckled, anti-aliased edges, soft shading"
 )
 FORCED_MODEL = "black-forest-labs/FLUX.1-Kontext-dev"
 INKING_PROMPT = (
-    "Refined professional vector line art, uniform line weights, bold black ink outlines, "
-    "clean Ligne claire style, flat 2D illustration, zero noise, high-contrast, perfectly smooth geometric paths."
+    "Refine the provided candidate into professional subject-preserving vector line art. "
+    "Keep the same subject identity, pose, and silhouette exactly; only improve line clarity and smoothness. "
+    "Uniform line weights, bold black ink outlines, clean Ligne claire style, flat 2D illustration, zero noise, high contrast."
 )
 FALLBACK_MODELS = [
     "black-forest-labs/FLUX.1-Kontext-dev",
@@ -209,7 +209,13 @@ def generate_candidates(
     return outputs, trace
 
 
-def refine_candidate_with_inking(candidate_path: Path, subject_mask_path: Path | None, refined_out: Path) -> dict[str, Any]:
+def refine_candidate_with_inking(
+    candidate_path: Path,
+    subject_mask_path: Path | None,
+    refined_out: Path,
+    *,
+    denoising_strength: float = 0.42,
+) -> dict[str, Any]:
     started = time.perf_counter()
     refined_out.parent.mkdir(parents=True, exist_ok=True)
 
@@ -219,7 +225,7 @@ def refine_candidate_with_inking(candidate_path: Path, subject_mask_path: Path |
             "provider": "local_mock",
             "configured_model": FORCED_MODEL,
             "resolved_model": "local_mock_renderer",
-            "denoising_strength": 0.42,
+            "denoising_strength": denoising_strength,
             "controlnet_model": "none",
             "prompt": INKING_PROMPT,
             "provider_call_ms": 0.0,
@@ -256,7 +262,7 @@ def refine_candidate_with_inking(candidate_path: Path, subject_mask_path: Path |
                 "input_image": candidate_data_url,
                 "guidance_scale": 10.0,
                 "num_inference_steps": 26,
-                "denoising_strength": 0.42,
+                "denoising_strength": denoising_strength,
                 "prompt_enhancement": False,
                 "output_format": "png",
             }
@@ -289,7 +295,7 @@ def refine_candidate_with_inking(candidate_path: Path, subject_mask_path: Path |
         "provider": "siliconflow",
         "configured_model": FORCED_MODEL,
         "resolved_model": model_id,
-        "denoising_strength": 0.42,
+        "denoising_strength": denoising_strength,
         "controlnet_model": selected_controlnet,
         "prompt": INKING_PROMPT,
         "provider_call_ms": provider_ms,

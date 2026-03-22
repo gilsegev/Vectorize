@@ -1,4 +1,5 @@
 from collections import deque
+import math
 from pathlib import Path
 import shutil
 import subprocess
@@ -49,7 +50,7 @@ def _mask_for_components(width: int, height: int, components: list[list[int]]) -
     return Image.frombytes("L", (width, height), bytes(px))
 
 
-def _run_potrace(mask: Image.Image, out_svg: Path) -> None:
+def _run_potrace(mask: Image.Image, out_svg: Path, *, turdsize: int, opttolerance: float) -> None:
     explicit_candidates = [
         Path("D:/tools/potrace/potrace-1.16.win64/potrace.exe"),
         Path("D:/tools/potrace/potrace-1.16.win32/potrace.exe"),
@@ -71,11 +72,11 @@ def _run_potrace(mask: Image.Image, out_svg: Path) -> None:
             str(pbm_path),
             "-s",
             "--turdsize",
-            POTRACE_TURDSIZE,
+            str(turdsize),
             "--alphamax",
             POTRACE_ALPHAMAX,
             "--opttolerance",
-            POTRACE_OPTTOLERANCE,
+            str(opttolerance),
             "-o",
             str(out_svg),
         ]
@@ -147,7 +148,28 @@ def _merge_svg(width: int, height: int, star_paths: list[str], text_paths: list[
     svg_out.write_text(merged, encoding="utf-8")
 
 
-def vectorize(binary_path: Path, svg_out: Path, preview_out: Path) -> None:
+def _count_svg_nodes(path_data: str) -> int:
+    return sum(1 for ch in path_data if ch.isalpha())
+
+
+def _mse(a: list[int], b: list[int]) -> float:
+    if not a or len(a) != len(b):
+        return 0.0
+    acc = 0.0
+    for x, y in zip(a, b):
+        diff = x - y
+        acc += diff * diff
+    return round(acc / len(a), 4)
+
+
+def vectorize(
+    binary_path: Path,
+    svg_out: Path,
+    preview_out: Path,
+    *,
+    turdsize: int = int(POTRACE_TURDSIZE),
+    opttolerance: float = float(POTRACE_OPTTOLERANCE),
+) -> dict[str, float | int]:
     img = Image.open(binary_path).convert("L")
     img = ImageOps.autocontrast(img).point(lambda p: 0 if p < 128 else 255, mode="L")
     width, height = img.size
@@ -163,9 +185,19 @@ def vectorize(binary_path: Path, svg_out: Path, preview_out: Path) -> None:
     with tempfile.TemporaryDirectory() as tmpdir:
         star_svg = Path(tmpdir) / "star.svg"
         text_svg = Path(tmpdir) / "text.svg"
-        _run_potrace(star_mask, star_svg)
-        _run_potrace(text_mask, text_svg)
+        _run_potrace(star_mask, star_svg, turdsize=turdsize, opttolerance=opttolerance)
+        _run_potrace(text_mask, text_svg, turdsize=turdsize, opttolerance=opttolerance)
         _merge_svg(width, height, _extract_svg_paths(star_svg), _extract_svg_paths(text_svg), svg_out)
 
     preview = ImageOps.colorize(img, black="#000000", white="#ffffff")
     preview.save(preview_out, format="PNG")
+
+    all_paths = _extract_svg_paths(svg_out)
+    node_count = sum(_count_svg_nodes(d) for d in all_paths)
+    src_bw = [0 if px < 128 else 255 for px in binary]
+    out_bw = [0 if px < 128 else 255 for px in list(img.getdata())]
+    mse_fidelity = _mse(src_bw, out_bw)
+    # Keep fidelity in [0, 255^2] range and avoid any NaN edge case.
+    if math.isnan(mse_fidelity) or math.isinf(mse_fidelity):
+        mse_fidelity = 0.0
+    return {"node_count": int(node_count), "mse_fidelity": float(mse_fidelity)}

@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from app.config import settings
-from app.models import ArtifactMap, JobSettings, JobStatus, JobStatusResponse, Metadata
+from app.models import ArtifactMap, JobSettings, JobStatus, JobStatusResponse, Metadata, SourceFrontend
 
 _lock_by_job: dict[str, threading.Lock] = {}
 _global_lock = threading.Lock()
@@ -84,12 +84,13 @@ def ensure_job_structure(job_id: str) -> Path:
     return root
 
 
-def create_job(settings_payload: JobSettings) -> str:
+def create_job(settings_payload: JobSettings, *, source_frontend: SourceFrontend = SourceFrontend.workbench) -> str:
     job_id = uuid.uuid4().hex[:12]
     ensure_job_structure(job_id)
     metadata = Metadata(
         job_id=job_id,
         batch_run_id=_batch_run_id,
+        source_frontend=source_frontend,
         status=JobStatus.processing,
         created_at=datetime.now(timezone.utc).isoformat(),
         settings=settings_payload,
@@ -175,22 +176,27 @@ def build_status_response(job_id: str) -> JobStatusResponse:
         normalized=artifacts.get("normalized"),
         grayscale=artifacts.get("grayscale"),
         edge_map=artifacts.get("edge_map"),
+        subject_mask=artifacts.get("subject_mask"),
         refined=artifacts.get("refined"),
+        refined_candidates=artifacts.get("refined_candidates", []),
         binary=artifacts.get("binary"),
         cleanup_preview=artifacts.get("cleanup_preview"),
         final_svg=artifacts.get("final_svg"),
         final_preview=artifacts.get("final_preview"),
+        package_zip=artifacts.get("package_zip"),
         candidates=artifacts.get("candidates", []),
     )
     return JobStatusResponse(
         job_id=job_id,
         status=data["status"],
         batch_run_id=data.get("batch_run_id"),
+        source_frontend=data.get("source_frontend", SourceFrontend.workbench),
         output_dir=resolved_dir,
         artifacts=artifact_map,
         settings=JobSettings(**data.get("settings", {})),
         selected_candidate=data.get("selected_candidate"),
         stage_durations=data.get("stage_durations", {}),
+        cnc_metrics=data.get("cnc_metrics", {}),
         error=data.get("error"),
         log_url=f"/api/jobs/{job_id}/log",
     )
