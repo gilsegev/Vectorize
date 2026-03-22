@@ -49,6 +49,9 @@ def test_happy_path_single_variant(client):
     artifacts = payload["artifacts"]
     for key in ["original", "normalized", "grayscale", "edge_map", "binary", "cleanup_preview", "final_svg", "final_preview"]:
         assert artifacts[key], f"missing {key}"
+    assert payload.get("prompt_version")
+    assert "quality_diagnostics" in payload
+    assert payload["quality_diagnostics"].get("face_region_density") is None
 
     svg_resp = client.get(f"/api/jobs/{job_id}/download/svg")
     assert svg_resp.status_code == 200
@@ -67,6 +70,7 @@ def test_manual_variant_selection_flow(client):
     waiting = _poll_job(client, job_id)
     assert waiting["status"] == "waiting_for_selection"
     assert len(waiting["artifacts"]["candidates"]) == 3
+    assert waiting.get("candidate_scores")
 
     bad = client.post(f"/api/jobs/{job_id}/select-variant", json={"candidate": "candidate_99.png"})
     assert bad.status_code == 400
@@ -78,6 +82,7 @@ def test_manual_variant_selection_flow(client):
     assert completed["status"] == "completed"
     assert completed["selected_candidate"] == "candidate_2.png"
     assert completed["settings"]["log_verbosity"] == "mid"
+    assert completed.get("selection_reason")
 
 
 def test_invalid_file_type_rejected(client):

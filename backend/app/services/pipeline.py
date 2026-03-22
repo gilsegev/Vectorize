@@ -5,9 +5,9 @@ from pathlib import Path
 from threading import Thread
 
 from app.config import settings as app_settings
-from app.models import JobSettings, JobStatus
+from app.models import JobSettings, JobStatus, SelectionMode
 from app.services.image_ops import cleanup_raster, normalize_upload, preprocess
-from app.services.siliconflow import FORCED_MODEL, NEGATIVE_PROMPT, PROMPT, generate_candidates, refine_candidate_with_inking
+from app.services.siliconflow import FORCED_MODEL, generate_candidates, refine_candidate_with_inking
 from app.services.storage import (
     append_run_log,
     job_dir,
@@ -16,6 +16,7 @@ from app.services.storage import (
     update_metadata,
     update_stage_duration,
 )
+from app.services.tuning import measure_line_diagnostics, score_candidate
 from app.services.vectorize import vectorize
 
 
@@ -48,6 +49,10 @@ class PipelineService:
                 cleanup_strength=job_settings.cleanup_strength.value,
                 log_verbosity=job_settings.log_verbosity.value,
                 fabrication_style=job_settings.fabrication_style.value,
+                prompt_profile=job_settings.prompt_profile.value,
+                selection_mode=job_settings.selection_mode.value,
+                benchmark_tag=job_settings.benchmark_tag or "",
+                source_image_id=job_settings.source_image_id or "",
                 inking_denoise=job_settings.inking_denoise,
                 potrace_turdsize=job_settings.potrace_turdsize,
                 potrace_opttolerance=job_settings.potrace_opttolerance,
@@ -91,13 +96,6 @@ class PipelineService:
                 detail_level=job_settings.detail_level.value,
                 num_variants=job_settings.num_variants,
             )
-            append_run_log(
-                job_id,
-                "high",
-                "Generation request prompts",
-                prompt=PROMPT,
-                negative_prompt=NEGATIVE_PROMPT,
-            )
             try:
                 candidates, generation_trace = self._stage_generate(job_id, job_settings)
             except Exception as gen_exc:
@@ -124,7 +122,10 @@ class PipelineService:
                 total_generation_ms=generation_trace.get("total_generation_ms"),
                 num_variants_requested=generation_trace.get("num_variants_requested"),
                 num_variants_generated=generation_trace.get("num_variants_generated"),
+                prompt_profile=generation_trace.get("prompt_profile"),
+                prompt_version=generation_trace.get("prompt_version"),
             )
+            update_metadata(job_id, prompt_version=generation_trace.get("prompt_version"))
             append_run_log(job_id, "mid", "Stage done", stage="generation", candidates=len(candidates))
             append_run_log(
                 job_id,
@@ -168,18 +169,43 @@ class PipelineService:
                 resolved_model=summary.get("resolved_model"),
                 denoising_strength=summary.get("denoising_strength"),
                 controlnet_model=summary.get("controlnet_model"),
+                prompt_profile=generation_trace.get("prompt_profile"),
                 provider_call_ms=summary.get("provider_call_ms"),
                 total_inking_ms=round(sum(t.get("total_inking_ms", 0.0) for t in inking_traces), 2),
                 refined_candidates=len(refined_candidates),
             )
             append_run_log(job_id, "mid", "Stage done", stage="inking", refined_candidates=len(refined_candidates))
             append_run_log(job_id, "high", "Refined candidate files", files=",".join([p.name for p in refined_candidates]))
+            score_rows = self._score_candidates(candidates, refined_candidates)
+            score_map = {row["candidate"]: row for row in score_rows}
+            update_metadata(job_id, candidate_scores=score_map)
+            append_run_log(
+                job_id,
+                "mid",
+                "Candidate scoring computed",
+                scored=len(score_rows),
+                mode=job_settings.selection_mode.value,
+            )
 
             if job_settings.num_variants > 1:
+                if job_settings.selection_mode == SelectionMode.auto and app_settings.enable_auto_selection and score_rows:
+                    best = min(score_rows, key=lambda row: float(row["score"]))
+                    selected_name = str(best["candidate"])
+                    update_metadata(job_id, selected_candidate=selected_name, selection_reason=f"auto_score:{best['score']}")
+                    append_run_log(
+                        job_id,
+                        "low",
+                        "Auto-selected candidate",
+                        candidate=selected_name,
+                        score=best["score"],
+                    )
+                    self._run_finalize_from_selection(job_id, selected_name)
+                    return
                 update_metadata(job_id, status=JobStatus.waiting_for_selection, selected_candidate=None)
                 append_run_log(job_id, "low", "Paused for user selection")
                 return
 
+            update_metadata(job_id, selected_candidate="candidate_1.png", selection_reason="single_variant_default")
             self._run_finalize_from_selection(job_id, "candidate_1.png")
         except Exception as exc:  # noqa: BLE001
             self._set_failed(job_id, exc)
@@ -198,6 +224,8 @@ class PipelineService:
 
             update_metadata(job_id, status=JobStatus.processing, selected_candidate=candidate_name)
             settings = JobSettings(**metadata["settings"])
+            if not metadata.get("selection_reason"):
+                update_metadata(job_id, selection_reason=f"manual_select:{candidate_name}")
             append_run_log(job_id, "mid", "Finalize pipeline", selected_candidate=candidate_name)
 
             refined_path = self._resolve_or_create_refined(job_id, candidate_name, candidate_path, metadata)
@@ -207,6 +235,8 @@ class PipelineService:
             binary_path, preview_path = self._stage_cleanup(job_id, refined_path, settings)
             update_stage_duration(job_id, "cleanup", time.perf_counter() - start)
             update_artifacts(job_id, binary=str(binary_path), cleanup_preview=str(preview_path))
+            quality = measure_line_diagnostics(binary_path)
+            update_metadata(job_id, quality_diagnostics=quality)
             append_run_log(
                 job_id,
                 "mid",
@@ -214,6 +244,9 @@ class PipelineService:
                 stage="cleanup",
                 binary=binary_path.name,
                 cleanup_preview=preview_path.name,
+                small_component_count=quality.get("small_component_count"),
+                interior_line_density=quality.get("interior_line_density"),
+                face_region_density=quality.get("face_region_density"),
             )
 
             start = time.perf_counter()
@@ -281,7 +314,19 @@ class PipelineService:
             binary_path, preview_path = self._stage_cleanup(job_id, refined_path, settings)
             update_stage_duration(job_id, "cleanup", time.perf_counter() - start)
             update_artifacts(job_id, binary=str(binary_path), cleanup_preview=str(preview_path))
-            append_run_log(job_id, "mid", "Stage done", stage="cleanup", binary=binary_path.name, cleanup_preview=preview_path.name)
+            quality = measure_line_diagnostics(binary_path)
+            update_metadata(job_id, quality_diagnostics=quality)
+            append_run_log(
+                job_id,
+                "mid",
+                "Stage done",
+                stage="cleanup",
+                binary=binary_path.name,
+                cleanup_preview=preview_path.name,
+                small_component_count=quality.get("small_component_count"),
+                interior_line_density=quality.get("interior_line_density"),
+                face_region_density=quality.get("face_region_density"),
+            )
 
             start = time.perf_counter()
             append_run_log(job_id, "low", "Stage start", stage="vectorization")
@@ -339,6 +384,7 @@ class PipelineService:
             generation_dir,
             detail_level=settings.detail_level.value,
             num_variants=settings.num_variants,
+            prompt_profile=settings.prompt_profile,
         )
 
     def _stage_ink_candidates(self, job_id: str, candidates: list[Path], settings: JobSettings) -> tuple[list[Path], list[dict]]:
@@ -404,8 +450,33 @@ class PipelineService:
         binary = root / "06_cleanup_binary.png"
         preview = root / "07_cleanup_preview.png"
         subject_mask = root / "05_preprocess_subject_mask.png"
-        cleanup_raster(candidate_path, binary, preview, settings.cleanup_strength, subject_mask)
+        use_tuned_cleanup = app_settings.enable_tuned_cleanup or (
+            settings.cleanup_threshold_bias != 0 or settings.cleanup_min_component_px != 40 or settings.cleanup_speck_morph != 0
+        )
+        if use_tuned_cleanup:
+            cleanup_raster(
+                candidate_path,
+                binary,
+                preview,
+                settings.cleanup_strength,
+                subject_mask,
+                threshold_bias=settings.cleanup_threshold_bias,
+                min_component_px=settings.cleanup_min_component_px,
+                speck_morph=settings.cleanup_speck_morph,
+            )
+        else:
+            cleanup_raster(candidate_path, binary, preview, settings.cleanup_strength, subject_mask)
         return binary, preview
+
+    def _score_candidates(self, candidates: list[Path], refined_candidates: list[Path]) -> list[dict]:
+        rows: list[dict] = []
+        for idx, candidate in enumerate(candidates, start=1):
+            refined = refined_candidates[idx - 1] if idx - 1 < len(refined_candidates) else candidate
+            diagnostics = measure_line_diagnostics(refined)
+            row = score_candidate(diagnostics, candidate.name)
+            row["refined_file"] = refined.name
+            rows.append(row)
+        return rows
 
     def _stage_vectorize(self, job_id: str, binary_path: Path, settings: JobSettings) -> tuple[Path, Path, dict[str, float | int]]:
         root = job_dir(job_id)

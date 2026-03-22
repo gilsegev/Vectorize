@@ -8,17 +8,11 @@ import httpx
 from PIL import Image, ImageEnhance, ImageFilter, ImageOps
 
 from app.config import settings
+from app.models import PromptProfile
+from app.services.tuning import LEGACY_NEGATIVE_PROMPT, LEGACY_PROMPT, resolve_generation_prompt
 
-PROMPT = (
-    "Convert the provided input image into subject-preserving decal-ready line art. "
-    "Keep the same subject identity, pose, silhouette, and main internal forms from the uploaded image. "
-    "Render in clean black-and-white flat 2D vector style with bold outlines, no gradients, no shading, no anti-aliasing."
-)
-NEGATIVE_PROMPT = (
-    "different subject, changed object category, swapped anatomy, added vehicle parts, added text/logo, "
-    "mesh, honeycomb, dots, stippling, photographic texture, realistic reflections, tiny details, gradients, "
-    "noise, grain, dust, grit, messy, blurry, low-res, speckled, anti-aliased edges, soft shading"
-)
+PROMPT = LEGACY_PROMPT
+NEGATIVE_PROMPT = LEGACY_NEGATIVE_PROMPT
 FORCED_MODEL = "black-forest-labs/FLUX.1-Kontext-dev"
 INKING_PROMPT = (
     "Refine the provided candidate into professional subject-preserving vector line art. "
@@ -120,13 +114,18 @@ def _local_mock_generation(normalized_path: Path, out_dir: Path, num_variants: i
 
 
 def generate_candidates(
-    normalized_path: Path, out_dir: Path, *, detail_level: str, num_variants: int
+    normalized_path: Path, out_dir: Path, *, detail_level: str, num_variants: int, prompt_profile: PromptProfile = PromptProfile.legacy
 ) -> tuple[list[Path], dict[str, Any]]:
     out_dir.mkdir(parents=True, exist_ok=True)
     total_started = time.perf_counter()
     strength = {"low": 0.45, "medium": 0.55, "high": 0.68}[detail_level]
     steps = {"low": 22, "medium": 30, "high": 40}[detail_level]
     cfg_scale = 12.0
+    prompt_payload = resolve_generation_prompt(prompt_profile)
+    resolved_prompt = prompt_payload["prompt"]
+    resolved_negative_prompt = prompt_payload["negative_prompt"]
+    resolved_profile = prompt_payload["prompt_profile"]
+    prompt_version = prompt_payload["prompt_version"]
 
     if not settings.siliconflow_api_key:
         outputs = _local_mock_generation(normalized_path, out_dir, num_variants, detail_level)
@@ -140,8 +139,10 @@ def generate_candidates(
             "steps": steps,
             "guidance_scale": cfg_scale,
             "strength": strength,
-            "prompt": PROMPT,
-            "negative_prompt": NEGATIVE_PROMPT,
+            "prompt_profile": resolved_profile,
+            "prompt_version": prompt_version,
+            "prompt": resolved_prompt,
+            "negative_prompt": resolved_negative_prompt,
             "provider_call_ms": 0.0,
             "total_generation_ms": round((time.perf_counter() - total_started) * 1000, 2),
             "reason": "SILICONFLOW_API_KEY missing",
@@ -166,8 +167,8 @@ def generate_candidates(
         for _ in range(num_variants):
             payload = {
                 "model": model_id,
-                "prompt": PROMPT,
-                "negative_prompt": NEGATIVE_PROMPT,
+                "prompt": resolved_prompt,
+                "negative_prompt": resolved_negative_prompt,
                 # Keep payload minimal for current SiliconFlow image-edit schema.
                 "image": data_url,
                 "guidance_scale": cfg_scale,
@@ -201,8 +202,10 @@ def generate_candidates(
         "steps": steps,
         "guidance_scale": cfg_scale,
         "strength": strength,
-        "prompt": PROMPT,
-        "negative_prompt": NEGATIVE_PROMPT,
+        "prompt_profile": resolved_profile,
+        "prompt_version": prompt_version,
+        "prompt": resolved_prompt,
+        "negative_prompt": resolved_negative_prompt,
         "provider_call_ms": provider_ms,
         "total_generation_ms": round((time.perf_counter() - total_started) * 1000, 2),
     }

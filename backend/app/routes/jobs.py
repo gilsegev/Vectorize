@@ -15,7 +15,9 @@ from app.models import (
     JobSettings,
     JobStatus,
     LogVerbosity,
+    PromptProfile,
     RefineRerunRequest,
+    SelectionMode,
     SelectVariantRequest,
     SourceFrontend,
 )
@@ -53,9 +55,16 @@ async def create_job_endpoint(
     cleanup_strength: CleanupStrength = Form(CleanupStrength.medium),
     log_verbosity: LogVerbosity = Form(LogVerbosity.mid),
     fabrication_style: FabricationStyle = Form(FabricationStyle.bold_signage),
+    prompt_profile: PromptProfile = Form(PromptProfile.legacy),
+    selection_mode: SelectionMode = Form(SelectionMode.manual),
+    benchmark_tag: str | None = Form(None),
+    source_image_id: str | None = Form(None),
     inking_denoise: float | None = Form(None),
     potrace_turdsize: int | None = Form(None),
     potrace_opttolerance: float | None = Form(None),
+    cleanup_threshold_bias: int = Form(0),
+    cleanup_min_component_px: int = Form(40),
+    cleanup_speck_morph: int = Form(0),
     source_frontend: SourceFrontend = Form(SourceFrontend.workbench),
 ) -> JobCreateResponse:
     ext = Path(file.filename or "").suffix.lower()
@@ -70,15 +79,25 @@ async def create_job_endpoint(
         raise HTTPException(status_code=413, detail="File too large")
 
     preset_denoise, preset_turdsize, preset_opttol = FABRICATION_PRESETS[fabrication_style]
+    effective_selection_mode = selection_mode
+    if source_frontend == SourceFrontend.storefront:
+        effective_selection_mode = SelectionMode.auto if settings.enable_auto_selection else SelectionMode.manual
     settings_payload = JobSettings(
         detail_level=detail_level,
         num_variants=num_variants,
         cleanup_strength=cleanup_strength,
         log_verbosity=log_verbosity,
         fabrication_style=fabrication_style,
+        prompt_profile=prompt_profile,
+        selection_mode=effective_selection_mode,
+        benchmark_tag=benchmark_tag,
+        source_image_id=source_image_id,
         inking_denoise=(inking_denoise if inking_denoise is not None else preset_denoise),
         potrace_turdsize=(potrace_turdsize if potrace_turdsize is not None else preset_turdsize),
         potrace_opttolerance=(potrace_opttolerance if potrace_opttolerance is not None else preset_opttol),
+        cleanup_threshold_bias=cleanup_threshold_bias,
+        cleanup_min_component_px=cleanup_min_component_px,
+        cleanup_speck_morph=cleanup_speck_morph,
     )
     job_id = create_job(settings_payload, source_frontend=source_frontend)
     pipeline_service.start_job(job_id, contents, file.filename or "input")

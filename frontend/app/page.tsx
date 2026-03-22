@@ -6,6 +6,8 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000";
 
 type JobStatus = "processing" | "waiting_for_selection" | "completed" | "failed";
 type FabricationStyle = "precision_inlay" | "bold_signage" | "abstract_art";
+type PromptProfile = "legacy" | "base_professional_pen" | "stronger_polish" | "realism_preserving";
+type SelectionMode = "manual" | "auto";
 
 type JobPayload = {
   job_id: string;
@@ -35,12 +37,23 @@ type JobPayload = {
     cleanup_strength: string;
     log_verbosity?: string;
     fabrication_style?: FabricationStyle;
+    prompt_profile?: PromptProfile;
+    selection_mode?: SelectionMode;
+    benchmark_tag?: string | null;
+    source_image_id?: string | null;
     inking_denoise?: number;
     potrace_turdsize?: number;
     potrace_opttolerance?: number;
+    cleanup_threshold_bias?: number;
+    cleanup_min_component_px?: number;
+    cleanup_speck_morph?: number;
   };
   selected_candidate: string | null;
   stage_durations: Record<string, number>;
+  prompt_version?: string | null;
+  selection_reason?: string | null;
+  candidate_scores?: Record<string, { score?: number; diagnostics?: Record<string, number | null> }>;
+  quality_diagnostics?: { small_component_count?: number; interior_line_density?: number; face_region_density?: number | null };
   cnc_metrics?: {
     node_count?: number;
     mse_fidelity?: number;
@@ -64,6 +77,13 @@ export default function HomePage() {
   const [inkingDenoise, setInkingDenoise] = useState(PRESETS.bold_signage.inking_denoise);
   const [potraceTurdsize, setPotraceTurdsize] = useState(PRESETS.bold_signage.turdsize);
   const [potraceOpttol, setPotraceOpttol] = useState(PRESETS.bold_signage.opttolerance);
+  const [promptProfile, setPromptProfile] = useState<PromptProfile>("legacy");
+  const [selectionMode, setSelectionMode] = useState<SelectionMode>("manual");
+  const [benchmarkTag, setBenchmarkTag] = useState("");
+  const [sourceImageId, setSourceImageId] = useState("");
+  const [cleanupThresholdBias, setCleanupThresholdBias] = useState(0);
+  const [cleanupMinComponentPx, setCleanupMinComponentPx] = useState(40);
+  const [cleanupSpeckMorph, setCleanupSpeckMorph] = useState(0);
 
   const [jobId, setJobId] = useState("");
   const [jobIdInput, setJobIdInput] = useState("");
@@ -142,9 +162,16 @@ export default function HomePage() {
     formData.append("num_variants", String(numVariants));
     formData.append("log_verbosity", logVerbosity);
     formData.append("fabrication_style", fabricationStyle);
+    formData.append("prompt_profile", promptProfile);
+    formData.append("selection_mode", selectionMode);
+    formData.append("benchmark_tag", benchmarkTag);
+    formData.append("source_image_id", sourceImageId);
     formData.append("inking_denoise", String(inkingDenoise));
     formData.append("potrace_turdsize", String(potraceTurdsize));
     formData.append("potrace_opttolerance", String(potraceOpttol));
+    formData.append("cleanup_threshold_bias", String(cleanupThresholdBias));
+    formData.append("cleanup_min_component_px", String(cleanupMinComponentPx));
+    formData.append("cleanup_speck_morph", String(cleanupSpeckMorph));
     formData.append("source_frontend", "workbench");
 
     try {
@@ -170,7 +197,7 @@ export default function HomePage() {
     if (!candidateUrl || !job || job.status !== "waiting_for_selection") {
       return;
     }
-    const candidate = candidateUrl.split("/").pop();
+    const candidate = candidateUrl.split("?")[0].split("/").pop();
     if (!candidate) {
       return;
     }
@@ -324,6 +351,30 @@ export default function HomePage() {
               <input value={inkingDenoise.toFixed(2)} readOnly />
             </div>
             <div>
+              <label className="label">Prompt Profile</label>
+              <select value={promptProfile} onChange={(e) => setPromptProfile(e.target.value as PromptProfile)}>
+                <option value="legacy">Legacy</option>
+                <option value="base_professional_pen">Base Professional Pen</option>
+                <option value="stronger_polish">Stronger Polish</option>
+                <option value="realism_preserving">Realism Preserving</option>
+              </select>
+            </div>
+            <div>
+              <label className="label">Selection Mode</label>
+              <select value={selectionMode} onChange={(e) => setSelectionMode(e.target.value as SelectionMode)}>
+                <option value="manual">Manual</option>
+                <option value="auto">Auto</option>
+              </select>
+            </div>
+            <div>
+              <label className="label">Benchmark Tag</label>
+              <input value={benchmarkTag} onChange={(e) => setBenchmarkTag(e.target.value)} placeholder="round1-base" />
+            </div>
+            <div>
+              <label className="label">Source Image ID</label>
+              <input value={sourceImageId} onChange={(e) => setSourceImageId(e.target.value)} placeholder="car.jpg" />
+            </div>
+            <div>
               <label className="label">Potrace Turdsize</label>
               <input value={potraceTurdsize} readOnly />
             </div>
@@ -359,6 +410,18 @@ export default function HomePage() {
                 <option value="high">High</option>
               </select>
             </div>
+            <div>
+              <label className="label">Cleanup Threshold Bias</label>
+              <input type="number" min={-32} max={32} value={cleanupThresholdBias} onChange={(e) => setCleanupThresholdBias(Number(e.target.value))} />
+            </div>
+            <div>
+              <label className="label">Cleanup Min Component Px</label>
+              <input type="number" min={8} max={5000} value={cleanupMinComponentPx} onChange={(e) => setCleanupMinComponentPx(Number(e.target.value))} />
+            </div>
+            <div>
+              <label className="label">Cleanup Speck Morph</label>
+              <input type="number" min={0} max={2} value={cleanupSpeckMorph} onChange={(e) => setCleanupSpeckMorph(Number(e.target.value))} />
+            </div>
           </div>
           <div style={{ marginTop: 16 }}>
             <button type="submit" disabled={loading}>{loading ? "Starting..." : "Start Job"}</button>
@@ -376,6 +439,8 @@ export default function HomePage() {
             {job && <div className="status">{job.status}</div>}
             {job?.batch_run_id && <p><strong>Batch Run:</strong> {job.batch_run_id}</p>}
             {job?.source_frontend && <p><strong>Source Frontend:</strong> {job.source_frontend}</p>}
+            {job?.prompt_version && <p><strong>Prompt Version:</strong> {job.prompt_version}</p>}
+            {job?.selection_reason && <p><strong>Selection Reason:</strong> {job.selection_reason}</p>}
             {job?.output_dir && (
               <p>
                 <strong>Output Dir:</strong>{" "}
@@ -430,6 +495,9 @@ export default function HomePage() {
                 <div key={candidateUrl ?? index} className="card">
                   <h3>{`candidate_${index + 1}.png`}</h3>
                   <Artifact title={`candidate_${index + 1}`} src={candidateUrl} compact onFocus={setFocusedAsset} />
+                  {job?.candidate_scores?.[`candidate_${index + 1}.png`]?.score !== undefined && (
+                    <p>score: {job.candidate_scores[`candidate_${index + 1}.png`].score}</p>
+                  )}
                   {canSelect && (
                     <button disabled={busy} onClick={() => selectVariant(candidateUrl)}>
                       Select this variant
@@ -448,6 +516,17 @@ export default function HomePage() {
                 </div>
               ))}
             </div>
+
+            {job?.quality_diagnostics && (
+              <>
+                <h3 style={{ marginTop: 14 }}>Quality Diagnostics</h3>
+                <div className="row">
+                  <div className="card"><strong>small_component_count</strong><div>{job.quality_diagnostics.small_component_count ?? "-"}</div></div>
+                  <div className="card"><strong>interior_line_density</strong><div>{job.quality_diagnostics.interior_line_density ?? "-"}</div></div>
+                  <div className="card"><strong>face_region_density</strong><div>{job.quality_diagnostics.face_region_density ?? "null"}</div></div>
+                </div>
+              </>
+            )}
 
             {canDownload && (
               <div style={{ marginTop: 14 }}>
@@ -510,7 +589,7 @@ function Artifact({
   }
   const fullSrc = src.startsWith("http") ? src : `${API_BASE}${src}`;
   const isSvg = src.endsWith(".svg");
-  const fileName = src.split("/").pop() || "artifact";
+  const fileName = src.split("?")[0].split("/").pop() || "artifact";
   const openInNewTab = () => window.open(fullSrc, "_blank", "noopener,noreferrer");
 
   async function handleDownload() {

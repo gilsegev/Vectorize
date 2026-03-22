@@ -12,6 +12,12 @@ class Settings(BaseSettings):
     siliconflow_api_key: str = ""
     siliconflow_base_url: str = "https://api.siliconflow.cn/v1"
     siliconflow_model: str = "stabilityai/stable-diffusion-xl-base-1.0"
+    enable_tuned_prompts: bool = False
+    enable_tuned_cleanup: bool = False
+    enable_auto_selection: bool = False
+    prompt_registry_version: str = "2026-03-22-r1"
+    active_tuned_prompt_profile: str = "base_professional_pen"
+    previous_tuned_prompt_profile: str = "legacy"
     allow_cors_origins: str = "*"
 
 

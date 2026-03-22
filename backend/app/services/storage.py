@@ -197,6 +197,10 @@ def build_status_response(job_id: str) -> JobStatusResponse:
         selected_candidate=data.get("selected_candidate"),
         stage_durations=data.get("stage_durations", {}),
         cnc_metrics=data.get("cnc_metrics", {}),
+        prompt_version=data.get("prompt_version"),
+        selection_reason=data.get("selection_reason"),
+        candidate_scores=data.get("candidate_scores", {}),
+        quality_diagnostics=data.get("quality_diagnostics", {}),
         error=data.get("error"),
         log_url=f"/api/jobs/{job_id}/log",
     )

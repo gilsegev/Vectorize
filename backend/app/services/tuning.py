@@ -1,0 +1,185 @@
+from __future__ import annotations
+
+from collections import deque
+from pathlib import Path
+from typing import Any
+
+from PIL import Image, ImageOps
+
+from app.config import settings
+from app.models import PromptProfile
+
+LEGACY_PROMPT = (
+    "Convert the provided input image into subject-preserving decal-ready line art. "
+    "Keep the same subject identity, pose, silhouette, and main internal forms from the uploaded image. "
+    "Render in clean black-and-white flat 2D vector style with bold outlines, no gradients, no shading, no anti-aliasing."
+)
+LEGACY_NEGATIVE_PROMPT = (
+    "different subject, changed object category, swapped anatomy, added vehicle parts, added text/logo, "
+    "mesh, honeycomb, dots, stippling, photographic texture, realistic reflections, tiny details, gradients, "
+    "noise, grain, dust, grit, messy, blurry, low-res, speckled, anti-aliased edges, soft shading"
+)
+
+PROMPT_REGISTRY: dict[PromptProfile, dict[str, str]] = {
+    PromptProfile.base_professional_pen: {
+        "prompt": (
+            "clean professional pen-and-ink line drawing of the uploaded image, restrained linework, strong outer contours, "
+            "simplified interior detail, preserved facial identity, preserved natural expression, selective line placement, "
+            "clean silhouettes, minimal but confident facial features, minimal fabric folds, reduced hair strand detail, "
+            "smooth black ink lines on plain light background, hand-drawn editorial illustration quality"
+        ),
+        "negative_prompt": (
+            "messy background, photoreal shading, painterly texture, watercolor, gray wash, crosshatching, excessive wrinkles, "
+            "too many fabric folds, excessive hair strands, noisy micro-detail, skin texture, pores, realistic shading, "
+            "sketchy scribbles, duplicated features, deformed hands, cluttered interior lines, comic-book exaggeration, "
+            "cartoon style, manga style, engraving texture, woodcut texture"
+        ),
+    },
+    PromptProfile.stronger_polish: {
+        "prompt": (
+            "clean professional pen illustration, highly selective linework, only essential contours and facial features, "
+            "simplified hair masses instead of individual strands, simplified clothing with only major folds, "
+            "elegant black ink contours, quiet interior detail, natural human likeness, readable expression, "
+            "polished hand-drawn look, minimal line clutter, premium editorial line art"
+        ),
+        "negative_prompt": (
+            "busy linework, scratchy pen marks, excess texture, too many contour lines, too many smile lines, "
+            "too much cheek detail, too many eyelid lines, detailed skin texture, dense hair texture, "
+            "dense clothing wrinkles, comic inking, stylized cartoon features, dramatic graphic-novel shading, "
+            "hatch marks, stippling, rough sketch"
+        ),
+    },
+    PromptProfile.realism_preserving: {
+        "prompt": (
+            "naturalistic pen-and-ink portrait drawing, accurate likeness, restrained simplification, clean contour emphasis, "
+            "minimal shading, subtle interior detail, realistic proportions, natural facial structure, "
+            "lightly simplified hair and clothing, polished black line drawing"
+        ),
+        "negative_prompt": (
+            "cartoon simplification, exaggerated features, icon-like face, overly flat shapes, posterized look, "
+            "logo style, stencil effect, aggressive abstraction"
+        ),
+    },
+}
+
+
+def resolve_generation_prompt(profile: PromptProfile) -> dict[str, str]:
+    """Resolve prompt + negative prompt with feature-flag controlled defaults."""
+    if profile != PromptProfile.legacy:
+        selected = profile
+    elif settings.enable_tuned_prompts:
+        try:
+            selected = PromptProfile(settings.active_tuned_prompt_profile)
+        except Exception:
+            selected = PromptProfile.base_professional_pen
+    else:
+        selected = PromptProfile.legacy
+
+    if selected == PromptProfile.legacy:
+        return {
+            "prompt_profile": PromptProfile.legacy.value,
+            "prompt_version": settings.prompt_registry_version,
+            "prompt": LEGACY_PROMPT,
+            "negative_prompt": LEGACY_NEGATIVE_PROMPT,
+        }
+
+    selected_prompt = PROMPT_REGISTRY[selected]
+    return {
+        "prompt_profile": selected.value,
+        "prompt_version": settings.prompt_registry_version,
+        "prompt": selected_prompt["prompt"],
+        "negative_prompt": selected_prompt["negative_prompt"],
+    }
+
+
+def _component_stats(binary: list[int], width: int, height: int) -> tuple[int, int]:
+    visited = bytearray(len(binary))
+    small_components = 0
+    total_components = 0
+    deltas = (-1, 1, -width, width, -width - 1, -width + 1, width - 1, width + 1)
+    for idx, value in enumerate(binary):
+        if value != 0 or visited[idx]:
+            continue
+        total_components += 1
+        queue: deque[int] = deque([idx])
+        visited[idx] = 1
+        size = 0
+        while queue:
+            cur = queue.popleft()
+            size += 1
+            x = cur % width
+            for d in deltas:
+                nxt = cur + d
+                if nxt < 0 or nxt >= len(binary):
+                    continue
+                nx = nxt % width
+                if abs(nx - x) > 1:
+                    continue
+                if binary[nxt] == 0 and not visited[nxt]:
+                    visited[nxt] = 1
+                    queue.append(nxt)
+        if size < 40:
+            small_components += 1
+    return small_components, total_components
+
+
+def measure_line_diagnostics(path: Path) -> dict[str, float | int | None]:
+    img = Image.open(path).convert("L")
+    bw = ImageOps.autocontrast(img).point(lambda p: 0 if p < 128 else 255, mode="L")
+    width, height = bw.size
+    px = list(bw.getdata())
+    black_mask = [0 if v < 128 else 255 for v in px]
+    black_count = sum(1 for v in black_mask if v == 0)
+
+    # Contour estimate: black pixel that touches white neighborhood.
+    contour_count = 0
+    for y in range(height):
+        for x in range(width):
+            idx = y * width + x
+            if black_mask[idx] != 0:
+                continue
+            is_contour = False
+            for ny in (y - 1, y, y + 1):
+                if ny < 0 or ny >= height:
+                    continue
+                for nx in (x - 1, x, x + 1):
+                    if nx < 0 or nx >= width:
+                        continue
+                    if nx == x and ny == y:
+                        continue
+                    if black_mask[ny * width + nx] != 0:
+                        is_contour = True
+                        break
+                if is_contour:
+                    break
+            if is_contour:
+                contour_count += 1
+
+    interior_black = max(black_count - contour_count, 0)
+    interior_line_density = round(interior_black / max(width * height, 1), 6)
+    small_count, total_components = _component_stats(black_mask, width, height)
+    return {
+        "small_component_count": int(small_count),
+        "component_count": int(total_components),
+        "interior_line_density": float(interior_line_density),
+        "face_region_density": None,
+    }
+
+
+def score_candidate(diagnostics: dict[str, float | int | None], name: str) -> dict[str, Any]:
+    small_components = float(diagnostics.get("small_component_count") or 0.0)
+    interior_density = float(diagnostics.get("interior_line_density") or 0.0)
+    face_density = diagnostics.get("face_region_density")
+    face_penalty = 0.0 if face_density is None else abs(float(face_density) - 0.02) * 50.0
+
+    score = (small_components * 0.8) + (interior_density * 600.0) + face_penalty
+    return {
+        "candidate": name,
+        "score": round(score, 4),
+        "penalties": {
+            "small_component_penalty": round(small_components * 0.8, 4),
+            "interior_density_penalty": round(interior_density * 600.0, 4),
+            "face_clarity_penalty": round(face_penalty, 4),
+        },
+        "diagnostics": diagnostics,
+    }

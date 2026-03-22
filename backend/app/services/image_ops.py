@@ -57,6 +57,10 @@ def cleanup_raster(
     preview_out: Path,
     strength: CleanupStrength,
     subject_mask_path: Path | None = None,
+    *,
+    threshold_bias: int = 0,
+    min_component_px: int = 40,
+    speck_morph: int = 0,
 ) -> None:
     img = Image.open(candidate_path).convert("L")
 
@@ -88,8 +92,10 @@ def cleanup_raster(
             max_var = between
             otsu_threshold = t
 
+    adjusted_threshold = max(0, min(255, otsu_threshold + threshold_bias))
+
     # Black islands are <= threshold.
-    black = bytearray(1 if px <= otsu_threshold else 0 for px in gray)
+    black = bytearray(1 if px <= adjusted_threshold else 0 for px in gray)
 
     # Connected component filtering.
     visited = bytearray(len(black))
@@ -117,8 +123,8 @@ def cleanup_raster(
                     queue.append(nxt)
         components.append(comp)
 
-    # Keep medium/large components, remove tiny islands (<40px).
-    kept = [comp for comp in components if len(comp) >= 40]
+    # Keep medium/large components, remove tiny islands.
+    kept = [comp for comp in components if len(comp) >= min_component_px]
     largest: list[int] = max(kept, key=len) if kept else []
 
     filtered = bytearray(255 for _ in range(len(black)))
@@ -135,6 +141,8 @@ def cleanup_raster(
             smooth_size = 5
         else:
             smooth_size = 7
+        if speck_morph > 0:
+            smooth_size = min(9, smooth_size + (2 * speck_morph))
         smoothed = filtered_img.filter(ImageFilter.MinFilter(size=smooth_size)).filter(ImageFilter.MaxFilter(size=smooth_size))
         smoothed_px = list(smoothed.getdata())
         final_px = bytearray(filtered)

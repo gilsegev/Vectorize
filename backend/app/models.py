@@ -35,6 +35,18 @@ class FabricationStyle(str, Enum):
     abstract_art = "abstract_art"
 
 
+class PromptProfile(str, Enum):
+    legacy = "legacy"
+    base_professional_pen = "base_professional_pen"
+    stronger_polish = "stronger_polish"
+    realism_preserving = "realism_preserving"
+
+
+class SelectionMode(str, Enum):
+    manual = "manual"
+    auto = "auto"
+
+
 class SourceFrontend(str, Enum):
     storefront = "storefront"
     workbench = "workbench"
@@ -46,9 +58,16 @@ class JobSettings(BaseModel):
     cleanup_strength: CleanupStrength = CleanupStrength.medium
     log_verbosity: LogVerbosity = LogVerbosity.mid
     fabrication_style: FabricationStyle = FabricationStyle.bold_signage
+    prompt_profile: PromptProfile = PromptProfile.legacy
+    selection_mode: SelectionMode = SelectionMode.manual
+    benchmark_tag: str | None = None
+    source_image_id: str | None = None
     inking_denoise: float = Field(default=0.5, ge=0.1, le=0.9)
     potrace_turdsize: int = Field(default=200, ge=1, le=10000)
     potrace_opttolerance: float = Field(default=1.2, ge=0.1, le=5.0)
+    cleanup_threshold_bias: int = Field(default=0, ge=-32, le=32)
+    cleanup_min_component_px: int = Field(default=40, ge=8, le=5000)
+    cleanup_speck_morph: int = Field(default=0, ge=0, le=2)
 
 
 class JobCreateResponse(BaseModel):
@@ -83,6 +102,10 @@ class JobStatusResponse(BaseModel):
     selected_candidate: str | None = None
     stage_durations: dict[str, float] = Field(default_factory=dict)
     cnc_metrics: dict[str, float | int] = Field(default_factory=dict)
+    prompt_version: str | None = None
+    selection_reason: str | None = None
+    candidate_scores: dict[str, Any] = Field(default_factory=dict)
+    quality_diagnostics: dict[str, float | int | None] = Field(default_factory=dict)
     error: str | None = None
     log_url: str | None = None
 
@@ -112,5 +135,9 @@ class Metadata(BaseModel):
     selected_candidate: str | None = None
     stage_durations: dict[str, float] = Field(default_factory=dict)
     cnc_metrics: dict[str, float | int] = Field(default_factory=dict)
+    prompt_version: str | None = None
+    selection_reason: str | None = None
+    candidate_scores: dict[str, Any] = Field(default_factory=dict)
+    quality_diagnostics: dict[str, float | int | None] = Field(default_factory=dict)
     artifacts: dict[str, Any] = Field(default_factory=dict)
     error: str | None = None
