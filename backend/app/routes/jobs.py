@@ -55,7 +55,7 @@ async def create_job_endpoint(
     cleanup_strength: CleanupStrength = Form(CleanupStrength.medium),
     log_verbosity: LogVerbosity = Form(LogVerbosity.mid),
     fabrication_style: FabricationStyle = Form(FabricationStyle.bold_signage),
-    prompt_profile: PromptProfile = Form(PromptProfile.legacy),
+    prompt_profile: PromptProfile = Form(PromptProfile.balanced_default),
     selection_mode: SelectionMode = Form(SelectionMode.manual),
     benchmark_tag: str | None = Form(None),
     source_image_id: str | None = Form(None),

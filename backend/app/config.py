@@ -16,8 +16,8 @@ class Settings(BaseSettings):
     enable_tuned_cleanup: bool = False
     enable_auto_selection: bool = False
     prompt_registry_version: str = "2026-03-22-r1"
-    active_tuned_prompt_profile: str = "base_professional_pen"
-    previous_tuned_prompt_profile: str = "legacy"
+    active_tuned_prompt_profile: str = "balanced_default"
+    previous_tuned_prompt_profile: str = "base_professional_pen"
     allow_cors_origins: str = "*"
 
 

@@ -21,6 +21,58 @@ LEGACY_NEGATIVE_PROMPT = (
 )
 
 PROMPT_REGISTRY: dict[PromptProfile, dict[str, str]] = {
+    PromptProfile.balanced_default: {
+        "prompt": (
+            "clean professional pen-and-ink line drawing of the uploaded image, restrained linework, strong outer contours, "
+            "simplified interior detail, preserved subject identity cues, preserved distinctive structural features, natural proportions, "
+            "selective line placement, clean silhouettes, minimal but distinctive key features, lightly simplified texture and surface detail, "
+            "smooth black ink lines on plain light background, polished hand-drawn illustration"
+        ),
+        "negative_prompt": (
+            "generic simplification, overly idealized structure, blocky massing, posterized structure, messy background, photoreal shading, "
+            "painterly texture, watercolor, gray wash, crosshatching, excessive texture, too many interior lines, noisy micro-detail, "
+            "cluttered low-value detail, sketchy scribbles, duplicated features, deformed structure, comic-book exaggeration, cartoon style, "
+            "manga style, engraving texture, woodcut texture"
+        ),
+    },
+    PromptProfile.balanced_fallback_base_control: {
+        "prompt": (
+            "clean professional pen-and-ink line drawing of the uploaded image, restrained linework, strong outer contours, simplified interior detail, "
+            "preserved subject identity cues, preserved important structural features, selective line placement, clean silhouettes, "
+            "minimal but confident key features, reduced low-value texture, smooth black ink lines on plain light background, "
+            "hand-drawn editorial illustration quality"
+        ),
+        "negative_prompt": (
+            "messy background, photoreal shading, painterly texture, watercolor, gray wash, crosshatching, excessive texture, "
+            "too many interior lines, noisy micro-detail, cluttered low-value detail, sketchy scribbles, duplicated features, "
+            "deformed structure, cluttered interior lines, comic-book exaggeration, cartoon style, manga style, engraving texture, woodcut texture"
+        ),
+    },
+    PromptProfile.realistic_seed: {
+        "prompt": (
+            "naturalistic professional pen-and-ink drawing of the uploaded image, accurate structure, restrained simplification, clean contour emphasis, "
+            "preserved subject identity cues, preserved important structural features, subtle interior detail, natural proportions, "
+            "lightly simplified texture, smooth black ink contours, polished hand-drawn line illustration on a plain light background"
+        ),
+        "negative_prompt": (
+            "cartoon simplification, exaggerated features, generic structure, posterized look, graphic novel style, comic-book inking, manga style, "
+            "logo style, stencil effect, excessive black fill, messy background, photoreal shading, painterly texture, watercolor, gray wash, "
+            "crosshatching, dense texture, sketchy scribbles"
+        ),
+    },
+    PromptProfile.stylized_seed_do_not_default: {
+        "prompt": (
+            "clean professional pen-and-ink line drawing of the uploaded image, restrained linework, strong outer contours, simplified interior detail, "
+            "preserve subject identity cues, preserve distinctive structural features, simplify texture to major forms only, "
+            "simplify secondary surfaces and interior details, selective line placement, clean silhouettes, minimal but readable key features, "
+            "polished hand-drawn editorial line art on a plain light background"
+        ),
+        "negative_prompt": (
+            "excessive texture, dense surface detail, too many interior lines, busy linework, over-simplification of defining features, generic structure, "
+            "blocky abstraction, messy background, photoreal shading, painterly texture, watercolor, gray wash, crosshatching, sketchy scribbles, "
+            "duplicated features, deformed structure, comic-book exaggeration, cartoon style, manga style, engraving texture, woodcut texture"
+        ),
+    },
     PromptProfile.base_professional_pen: {
         "prompt": (
             "clean professional pen-and-ink line drawing of the uploaded image, restrained linework, strong outer contours, "
@@ -113,7 +165,7 @@ def resolve_generation_prompt(profile: PromptProfile) -> dict[str, str]:
         try:
             selected = PromptProfile(settings.active_tuned_prompt_profile)
         except Exception:
-            selected = PromptProfile.base_professional_pen
+            selected = PromptProfile.balanced_default
     else:
         selected = PromptProfile.legacy
 

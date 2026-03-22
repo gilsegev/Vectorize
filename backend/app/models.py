@@ -40,6 +40,10 @@ class PromptProfile(str, Enum):
     base_professional_pen = "base_professional_pen"
     stronger_polish = "stronger_polish"
     realism_preserving = "realism_preserving"
+    balanced_default = "balanced_default"
+    balanced_fallback_base_control = "balanced_fallback_base_control"
+    realistic_seed = "realistic_seed"
+    stylized_seed_do_not_default = "stylized_seed_do_not_default"
     variant_a_preserve_likeness = "variant_a_preserve_likeness"
     variant_b_selective_simplification = "variant_b_selective_simplification"
     variant_c_realism_leaning = "variant_c_realism_leaning"
@@ -61,7 +65,7 @@ class JobSettings(BaseModel):
     cleanup_strength: CleanupStrength = CleanupStrength.medium
     log_verbosity: LogVerbosity = LogVerbosity.mid
     fabrication_style: FabricationStyle = FabricationStyle.bold_signage
-    prompt_profile: PromptProfile = PromptProfile.legacy
+    prompt_profile: PromptProfile = PromptProfile.balanced_default
     selection_mode: SelectionMode = SelectionMode.manual
     benchmark_tag: str | None = None
     source_image_id: str | None = None

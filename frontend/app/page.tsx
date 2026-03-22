@@ -11,10 +11,15 @@ type PromptProfile =
   | "base_professional_pen"
   | "stronger_polish"
   | "realism_preserving"
+  | "balanced_default"
+  | "balanced_fallback_base_control"
+  | "realistic_seed"
+  | "stylized_seed_do_not_default"
   | "variant_a_preserve_likeness"
   | "variant_b_selective_simplification"
   | "variant_c_realism_leaning";
 type SelectionMode = "manual" | "auto";
+type StyleMode = "realistic" | "balanced" | "stylized";
 
 type JobPayload = {
   job_id: string;
@@ -97,7 +102,8 @@ export default function HomePage() {
   const [inkingDenoise, setInkingDenoise] = useState(PRESETS.bold_signage.inking_denoise);
   const [potraceTurdsize, setPotraceTurdsize] = useState(PRESETS.bold_signage.turdsize);
   const [potraceOpttol, setPotraceOpttol] = useState(PRESETS.bold_signage.opttolerance);
-  const [promptProfile, setPromptProfile] = useState<PromptProfile>("legacy");
+  const [promptProfile, setPromptProfile] = useState<PromptProfile>("balanced_default");
+  const [styleMode, setStyleMode] = useState<StyleMode>("balanced");
   const [selectionMode, setSelectionMode] = useState<SelectionMode>("manual");
   const [benchmarkTag, setBenchmarkTag] = useState("");
   const [sourceImageId, setSourceImageId] = useState("");
@@ -164,6 +170,19 @@ export default function HomePage() {
     setInkingDenoise(p.inking_denoise);
     setPotraceTurdsize(p.turdsize);
     setPotraceOpttol(p.opttolerance);
+  }
+
+  function applyStyleMode(mode: StyleMode) {
+    setStyleMode(mode);
+    if (mode === "realistic") {
+      setPromptProfile("realistic_seed");
+      return;
+    }
+    if (mode === "stylized") {
+      setPromptProfile("stylized_seed_do_not_default");
+      return;
+    }
+    setPromptProfile("balanced_default");
   }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -371,8 +390,20 @@ export default function HomePage() {
               <input value={inkingDenoise.toFixed(2)} readOnly />
             </div>
             <div>
+              <label className="label">Style Mode</label>
+              <select value={styleMode} onChange={(e) => applyStyleMode(e.target.value as StyleMode)}>
+                <option value="realistic">Realistic</option>
+                <option value="balanced">Balanced</option>
+                <option value="stylized">Stylized</option>
+              </select>
+            </div>
+            <div>
               <label className="label">Prompt Profile</label>
               <select value={promptProfile} onChange={(e) => setPromptProfile(e.target.value as PromptProfile)}>
+                <option value="balanced_default">Balanced Default</option>
+                <option value="balanced_fallback_base_control">Balanced Fallback Base Control</option>
+                <option value="realistic_seed">Realistic Seed</option>
+                <option value="stylized_seed_do_not_default">Stylized Seed (Do Not Default)</option>
                 <option value="legacy">Legacy</option>
                 <option value="base_professional_pen">Base Professional Pen</option>
                 <option value="stronger_polish">Stronger Polish</option>
