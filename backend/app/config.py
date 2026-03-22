@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     enable_tuned_prompts: bool = False
     enable_tuned_cleanup: bool = False
     enable_auto_selection: bool = False
+    enable_stylized_preset: bool = False
     prompt_registry_version: str = "2026-03-22-r1"
     active_tuned_prompt_profile: str = "balanced_default"
     previous_tuned_prompt_profile: str = "base_professional_pen"

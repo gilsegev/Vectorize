@@ -110,3 +110,29 @@ def test_clear_log_endpoint(client):
     after = client.get(f"/api/jobs/{job_id}/log")
     assert after.status_code == 200
     assert after.text == ""
+
+
+def test_style_capabilities_endpoint(client):
+    response = client.get("/api/jobs/style-capabilities")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["defaultStylePreset"] == "balanced"
+    assert "realistic" in payload["availableStylePresets"]
+    assert "balanced" in payload["availableStylePresets"]
+
+
+def test_storefront_style_preset_maps_to_prompt_profile(client):
+    files = {"file": ("input.png", _sample_png_bytes(), "image/png")}
+    data = {
+        "detail_level": "medium",
+        "cleanup_strength": "medium",
+        "num_variants": "1",
+        "source_frontend": "storefront",
+        "stylePreset": "realistic",
+    }
+    create = client.post("/api/jobs", files=files, data=data)
+    assert create.status_code == 200
+    job_id = create.json()["job_id"]
+    payload = _poll_job(client, job_id, terminal=("completed", "failed"))
+    assert payload["settings"]["style_preset"] == "realistic"
+    assert payload["settings"]["prompt_profile"] == "realistic_seed"

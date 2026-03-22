@@ -19,6 +19,7 @@ from app.models import (
     RefineRerunRequest,
     SelectionMode,
     SelectVariantRequest,
+    StylePreset,
     SourceFrontend,
 )
 from app.services.pipeline import pipeline_service
@@ -31,6 +32,11 @@ FABRICATION_PRESETS: dict[FabricationStyle, tuple[float, int, float]] = {
     FabricationStyle.precision_inlay: (0.35, 80, 0.5),
     FabricationStyle.bold_signage: (0.50, 200, 1.2),
     FabricationStyle.abstract_art: (0.65, 400, 2.0),
+}
+STYLE_TO_PROMPT: dict[StylePreset, PromptProfile] = {
+    StylePreset.realistic: PromptProfile.realistic_seed,
+    StylePreset.balanced: PromptProfile.balanced_default,
+    StylePreset.stylized: PromptProfile.stylized_seed_do_not_default,
 }
 
 
@@ -56,6 +62,8 @@ async def create_job_endpoint(
     log_verbosity: LogVerbosity = Form(LogVerbosity.mid),
     fabrication_style: FabricationStyle = Form(FabricationStyle.bold_signage),
     prompt_profile: PromptProfile = Form(PromptProfile.balanced_default),
+    style_preset: StylePreset | None = Form(None),
+    style_preset_alias: str | None = Form(None, alias="stylePreset"),
     selection_mode: SelectionMode = Form(SelectionMode.manual),
     benchmark_tag: str | None = Form(None),
     source_image_id: str | None = Form(None),
@@ -79,6 +87,22 @@ async def create_job_endpoint(
         raise HTTPException(status_code=413, detail="File too large")
 
     preset_denoise, preset_turdsize, preset_opttol = FABRICATION_PRESETS[fabrication_style]
+    resolved_style_preset = style_preset
+    if resolved_style_preset is None and style_preset_alias:
+        try:
+            resolved_style_preset = StylePreset(style_preset_alias)
+        except Exception:
+            resolved_style_preset = StylePreset.balanced
+    if resolved_style_preset is None:
+        resolved_style_preset = StylePreset.balanced
+    if resolved_style_preset == StylePreset.stylized and not settings.enable_stylized_preset:
+        resolved_style_preset = StylePreset.balanced
+
+    resolved_prompt_profile = STYLE_TO_PROMPT.get(resolved_style_preset, PromptProfile.balanced_default)
+    if prompt_profile != PromptProfile.balanced_default:
+        # Workbench may set prompt_profile directly; keep explicit setting as highest priority.
+        resolved_prompt_profile = prompt_profile
+
     effective_selection_mode = selection_mode
     if source_frontend == SourceFrontend.storefront:
         effective_selection_mode = SelectionMode.auto if settings.enable_auto_selection else SelectionMode.manual
@@ -88,7 +112,8 @@ async def create_job_endpoint(
         cleanup_strength=cleanup_strength,
         log_verbosity=log_verbosity,
         fabrication_style=fabrication_style,
-        prompt_profile=prompt_profile,
+        style_preset=resolved_style_preset,
+        prompt_profile=resolved_prompt_profile,
         selection_mode=effective_selection_mode,
         benchmark_tag=benchmark_tag,
         source_image_id=source_image_id,
@@ -102,6 +127,17 @@ async def create_job_endpoint(
     job_id = create_job(settings_payload, source_frontend=source_frontend)
     pipeline_service.start_job(job_id, contents, file.filename or "input")
     return JobCreateResponse(job_id=job_id, status=JobStatus.processing)
+
+
+@router.get("/style-capabilities")
+def style_capabilities() -> dict:
+    available = [StylePreset.realistic.value, StylePreset.balanced.value]
+    if settings.enable_stylized_preset:
+        available.append(StylePreset.stylized.value)
+    return {
+        "availableStylePresets": available,
+        "defaultStylePreset": StylePreset.balanced.value,
+    }
 
 
 @router.get("/{job_id}")
@@ -137,7 +173,10 @@ def get_job(job_id: str, view: str = "workbench") -> dict:
             "status": payload["status"],
             "batch_run_id": payload.get("batch_run_id"),
             "source_frontend": payload.get("source_frontend"),
-            "settings": {"fabrication_style": payload.get("settings", {}).get("fabrication_style")},
+            "settings": {
+                "fabrication_style": payload.get("settings", {}).get("fabrication_style"),
+                "style_preset": payload.get("settings", {}).get("style_preset"),
+            },
             "cnc_metrics": payload.get("cnc_metrics", {}),
             "artifacts": {
                 "art": artifacts.get("final_preview"),

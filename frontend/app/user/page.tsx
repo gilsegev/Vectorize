@@ -5,6 +5,7 @@ import { DragEvent, FormEvent, useEffect, useState } from "react";
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000";
 type FabricationStyle = "precision_inlay" | "bold_signage" | "abstract_art";
 type JobStatus = "processing" | "waiting_for_selection" | "completed" | "failed";
+type StylePreset = "realistic" | "balanced" | "stylized";
 
 type StorefrontPayload = {
   job_id: string;
@@ -18,6 +19,10 @@ type StorefrontPayload = {
   cnc_metrics?: { node_count?: number; mse_fidelity?: number };
   error: string | null;
 };
+type StyleCapabilities = {
+  availableStylePresets: StylePreset[];
+  defaultStylePreset: StylePreset;
+};
 
 const STYLE_LABEL: Record<FabricationStyle, string> = {
   precision_inlay: "Hardwood",
@@ -30,6 +35,9 @@ export default function UserStorefrontPage() {
   const [fabricationStyle, setFabricationStyle] = useState<FabricationStyle>("bold_signage");
   const [jobId, setJobId] = useState("");
   const [job, setJob] = useState<StorefrontPayload | null>(null);
+  const [stylePreset, setStylePreset] = useState<StylePreset>("balanced");
+  const [caps, setCaps] = useState<StyleCapabilities | null>(null);
+  const [styleHint, setStyleHint] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -51,6 +59,23 @@ export default function UserStorefrontPage() {
   }
 
   useEffect(() => {
+    async function fetchCaps() {
+      try {
+        const resp = await fetch(`${API_BASE}/api/jobs/style-capabilities`, { cache: "no-store" });
+        if (!resp.ok) {
+          return;
+        }
+        const payload = (await resp.json()) as StyleCapabilities;
+        setCaps(payload);
+        setStylePreset(payload.defaultStylePreset ?? "balanced");
+      } catch {
+        // Keep safe default if capability call fails.
+      }
+    }
+    fetchCaps();
+  }, []);
+
+  useEffect(() => {
     if (!jobId) {
       return;
     }
@@ -66,6 +91,37 @@ export default function UserStorefrontPage() {
     }
   }
 
+  const styleIndex = stylePreset === "realistic" ? 0 : stylePreset === "balanced" ? 1 : 2;
+  const stylizedEnabled = (caps?.availableStylePresets ?? ["realistic", "balanced"]).includes("stylized");
+  const styleDescription =
+    stylePreset === "realistic"
+      ? "Keeps more of the original structure and detail."
+      : stylePreset === "stylized"
+        ? stylizedEnabled
+          ? "Pushes toward a cleaner, more illustrated look."
+          : "More illustrated look. Coming soon."
+        : "Best mix of faithfulness and polished line art.";
+
+  function onStyleChange(nextIndex: number) {
+    if (nextIndex <= 0) {
+      setStylePreset("realistic");
+      setStyleHint(null);
+      return;
+    }
+    if (nextIndex >= 2) {
+      if (!stylizedEnabled) {
+        setStylePreset("balanced");
+        setStyleHint("Stylized is coming soon. Using Balanced for now.");
+        return;
+      }
+      setStylePreset("stylized");
+      setStyleHint(null);
+      return;
+    }
+    setStylePreset("balanced");
+    setStyleHint(null);
+  }
+
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!file) {
@@ -77,6 +133,7 @@ export default function UserStorefrontPage() {
     const form = new FormData();
     form.append("file", file);
     form.append("fabrication_style", fabricationStyle);
+    form.append("stylePreset", stylePreset);
     form.append("source_frontend", "storefront");
     form.append("num_variants", "1");
     try {
@@ -119,6 +176,28 @@ export default function UserStorefrontPage() {
             </select>
             <button type="submit" disabled={loading}>{loading ? "Processing..." : "Create Package"}</button>
           </div>
+          <div className="card" style={{ marginTop: 12 }}>
+            <label className="label">Style</label>
+            <input
+              type="range"
+              min={0}
+              max={2}
+              step={1}
+              value={styleIndex}
+              onChange={(e) => onStyleChange(Number(e.target.value))}
+              aria-label="Style"
+            />
+            <div className="row" style={{ justifyContent: "space-between" }}>
+              <span>Realistic</span>
+              <span>Balanced</span>
+              <span style={{ opacity: stylizedEnabled ? 1 : 0.6 }}>Stylized{stylizedEnabled ? "" : " (Soon)"}</span>
+            </div>
+            <p style={{ marginTop: 8, marginBottom: 0 }}>
+              Choose how closely the result follows the original versus a cleaner illustrated look.
+            </p>
+            <p style={{ marginTop: 6, marginBottom: 0 }}><strong>{styleDescription}</strong></p>
+            {styleHint && <p className="warn-text" style={{ marginTop: 6 }}>{styleHint}</p>}
+          </div>
         </form>
         {error && <p className="error-text">{error}</p>}
       </div>
@@ -130,6 +209,7 @@ export default function UserStorefrontPage() {
             <div className={`status ${success ? "status-success" : ""}`}>{success ? "Success" : job?.status ?? "processing"}</div>
           </div>
           <p><strong>Job ID:</strong> {jobId}</p>
+          <p><strong>Style:</strong> {stylePreset === "realistic" ? "Realistic" : stylePreset === "stylized" ? "Stylized" : "Balanced"}</p>
           <div className="grid">
             <StorefrontAsset title="Artistic Illustration" src={job?.artifacts.art ?? null} />
             <StorefrontAsset title="Production Toolpath SVG" src={job?.artifacts.toolpath_svg ?? null} />

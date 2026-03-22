@@ -54,6 +54,12 @@ class SelectionMode(str, Enum):
     auto = "auto"
 
 
+class StylePreset(str, Enum):
+    realistic = "realistic"
+    balanced = "balanced"
+    stylized = "stylized"
+
+
 class SourceFrontend(str, Enum):
     storefront = "storefront"
     workbench = "workbench"
@@ -65,6 +71,7 @@ class JobSettings(BaseModel):
     cleanup_strength: CleanupStrength = CleanupStrength.medium
     log_verbosity: LogVerbosity = LogVerbosity.mid
     fabrication_style: FabricationStyle = FabricationStyle.bold_signage
+    style_preset: StylePreset = StylePreset.balanced
     prompt_profile: PromptProfile = PromptProfile.balanced_default
     selection_mode: SelectionMode = SelectionMode.manual
     benchmark_tag: str | None = None
