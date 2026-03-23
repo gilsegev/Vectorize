@@ -452,7 +452,7 @@ class PipelineService:
         preview = root / "07_cleanup_preview.png"
         subject_mask = root / "05_preprocess_subject_mask.png"
         use_tuned_cleanup = app_settings.enable_tuned_cleanup or (
-            settings.cleanup_threshold_bias != 0 or settings.cleanup_min_component_px != 40 or settings.cleanup_speck_morph != 0
+            settings.cleanup_threshold_bias != 0 or settings.cleanup_min_component_px != 20 or settings.cleanup_speck_morph != 0
         )
         if use_tuned_cleanup:
             cleanup_raster(
@@ -489,6 +489,7 @@ class PipelineService:
             preview_out,
             turdsize=settings.potrace_turdsize,
             opttolerance=settings.potrace_opttolerance,
+            text_min_component=settings.cleanup_min_component_px,
         )
         return svg_out, preview_out, cnc_metrics
 

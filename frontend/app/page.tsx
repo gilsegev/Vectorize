@@ -79,6 +79,9 @@ const PRESETS: Record<FabricationStyle, { label: string; inking_denoise: number;
   abstract_art: { label: "Abstract Art", inking_denoise: 0.65, turdsize: 400, opttolerance: 2.0 },
 };
 const BENCHMARK_TAG_OPTIONS = [
+  "storefront-balanced-default",
+  "storefront-realistic-seed",
+  "storefront-stylized-seed",
   "control-r1-base-prof-pen",
   "control-variant-a",
   "control-variant-b",
@@ -91,6 +94,19 @@ const BENCHMARK_TAG_OPTIONS = [
   "round2-cleanup-component",
   "round2-cleanup-morph",
 ];
+const PROMPT_PROFILE_BENCHMARK_TAG: Record<PromptProfile, string> = {
+  legacy: "round1-legacy-baseline",
+  base_professional_pen: "round1-base-prof-pen",
+  stronger_polish: "round1-stronger-polish",
+  realism_preserving: "round1-realism-preserving",
+  balanced_default: "storefront-balanced-default",
+  balanced_fallback_base_control: "control-r1-base-prof-pen",
+  realistic_seed: "storefront-realistic-seed",
+  stylized_seed_do_not_default: "storefront-stylized-seed",
+  variant_a_preserve_likeness: "control-variant-a",
+  variant_b_selective_simplification: "control-variant-b",
+  variant_c_realism_leaning: "control-variant-c",
+};
 
 export default function HomePage() {
   const [file, setFile] = useState<File | null>(null);
@@ -105,10 +121,10 @@ export default function HomePage() {
   const [promptProfile, setPromptProfile] = useState<PromptProfile>("balanced_default");
   const [styleMode, setStyleMode] = useState<StyleMode>("balanced");
   const [selectionMode, setSelectionMode] = useState<SelectionMode>("manual");
-  const [benchmarkTag, setBenchmarkTag] = useState("");
+  const [benchmarkTag, setBenchmarkTag] = useState("storefront-balanced-default");
   const [sourceImageId, setSourceImageId] = useState("");
   const [cleanupThresholdBias, setCleanupThresholdBias] = useState(0);
-  const [cleanupMinComponentPx, setCleanupMinComponentPx] = useState(40);
+  const [cleanupMinComponentPx, setCleanupMinComponentPx] = useState(20);
   const [cleanupSpeckMorph, setCleanupSpeckMorph] = useState(0);
 
   const [jobId, setJobId] = useState("");
@@ -176,13 +192,16 @@ export default function HomePage() {
     setStyleMode(mode);
     if (mode === "realistic") {
       setPromptProfile("realistic_seed");
+      setBenchmarkTag(PROMPT_PROFILE_BENCHMARK_TAG.realistic_seed);
       return;
     }
     if (mode === "stylized") {
       setPromptProfile("stylized_seed_do_not_default");
+      setBenchmarkTag(PROMPT_PROFILE_BENCHMARK_TAG.stylized_seed_do_not_default);
       return;
     }
     setPromptProfile("balanced_default");
+    setBenchmarkTag(PROMPT_PROFILE_BENCHMARK_TAG.balanced_default);
   }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -399,7 +418,14 @@ export default function HomePage() {
             </div>
             <div>
               <label className="label">Prompt Profile</label>
-              <select value={promptProfile} onChange={(e) => setPromptProfile(e.target.value as PromptProfile)}>
+              <select
+                value={promptProfile}
+                onChange={(e) => {
+                  const nextProfile = e.target.value as PromptProfile;
+                  setPromptProfile(nextProfile);
+                  setBenchmarkTag(PROMPT_PROFILE_BENCHMARK_TAG[nextProfile]);
+                }}
+              >
                 <option value="balanced_default">Balanced Default</option>
                 <option value="balanced_fallback_base_control">Balanced Fallback Base Control</option>
                 <option value="realistic_seed">Realistic Seed</option>

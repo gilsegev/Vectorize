@@ -55,6 +55,7 @@ class SelectionMode(str, Enum):
 
 
 class StylePreset(str, Enum):
+    legacy = "legacy"
     realistic = "realistic"
     balanced = "balanced"
     stylized = "stylized"
@@ -80,7 +81,7 @@ class JobSettings(BaseModel):
     potrace_turdsize: int = Field(default=200, ge=1, le=10000)
     potrace_opttolerance: float = Field(default=1.2, ge=0.1, le=5.0)
     cleanup_threshold_bias: int = Field(default=0, ge=-32, le=32)
-    cleanup_min_component_px: int = Field(default=40, ge=8, le=5000)
+    cleanup_min_component_px: int = Field(default=20, ge=8, le=5000)
     cleanup_speck_morph: int = Field(default=0, ge=0, le=2)
 
 

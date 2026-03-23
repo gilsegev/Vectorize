@@ -5,7 +5,7 @@ import { DragEvent, FormEvent, useEffect, useState } from "react";
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000";
 type FabricationStyle = "precision_inlay" | "bold_signage" | "abstract_art";
 type JobStatus = "processing" | "waiting_for_selection" | "completed" | "failed";
-type StylePreset = "realistic" | "balanced" | "stylized";
+type StylePreset = "legacy" | "realistic" | "balanced" | "stylized";
 
 type StorefrontPayload = {
   job_id: string;
@@ -91,10 +91,13 @@ export default function UserStorefrontPage() {
     }
   }
 
-  const styleIndex = stylePreset === "realistic" ? 0 : stylePreset === "balanced" ? 1 : 2;
-  const stylizedEnabled = (caps?.availableStylePresets ?? ["realistic", "balanced"]).includes("stylized");
+  const styleIndex = stylePreset === "legacy" ? 0 : stylePreset === "realistic" ? 1 : stylePreset === "balanced" ? 2 : 3;
+  const availablePresets = caps?.availableStylePresets ?? ["legacy", "realistic", "balanced"];
+  const stylizedEnabled = availablePresets.includes("stylized");
   const styleDescription =
-    stylePreset === "realistic"
+    stylePreset === "legacy"
+      ? "Classic legacy line-art profile from earlier runs."
+      : stylePreset === "realistic"
       ? "Keeps more of the original structure and detail."
       : stylePreset === "stylized"
         ? stylizedEnabled
@@ -104,18 +107,18 @@ export default function UserStorefrontPage() {
 
   function onStyleChange(nextIndex: number) {
     if (nextIndex <= 0) {
+      setStylePreset("legacy");
+      setStyleHint(null);
+      return;
+    }
+    if (nextIndex === 1) {
       setStylePreset("realistic");
       setStyleHint(null);
       return;
     }
-    if (nextIndex >= 2) {
-      if (!stylizedEnabled) {
-        setStylePreset("balanced");
-        setStyleHint("Stylized is coming soon. Using Balanced for now.");
-        return;
-      }
+    if (nextIndex >= 3) {
       setStylePreset("stylized");
-      setStyleHint(null);
+      setStyleHint(stylizedEnabled ? null : "Stylized is coming soon. We'll use Balanced when generating.");
       return;
     }
     setStylePreset("balanced");
@@ -176,21 +179,25 @@ export default function UserStorefrontPage() {
             </select>
             <button type="submit" disabled={loading}>{loading ? "Processing..." : "Create Package"}</button>
           </div>
-          <div className="card" style={{ marginTop: 12 }}>
+          <div className="card style-card" style={{ marginTop: 12 }}>
             <label className="label">Style</label>
             <input
+              className="style-slider"
               type="range"
               min={0}
-              max={2}
+              max={3}
               step={1}
               value={styleIndex}
               onChange={(e) => onStyleChange(Number(e.target.value))}
               aria-label="Style"
             />
-            <div className="row" style={{ justifyContent: "space-between" }}>
-              <span>Realistic</span>
-              <span>Balanced</span>
-              <span style={{ opacity: stylizedEnabled ? 1 : 0.6 }}>Stylized{stylizedEnabled ? "" : " (Soon)"}</span>
+            <div className="style-labels">
+              <span className="style-label-left">Legacy</span>
+              <span className="style-label-center-left">Realistic</span>
+              <span className="style-label-center-right">Balanced</span>
+              <span className="style-label-right" style={{ opacity: stylizedEnabled ? 1 : 0.7 }}>
+                Stylized{stylizedEnabled ? "" : " (Soon)"}
+              </span>
             </div>
             <p style={{ marginTop: 8, marginBottom: 0 }}>
               Choose how closely the result follows the original versus a cleaner illustrated look.
@@ -209,7 +216,7 @@ export default function UserStorefrontPage() {
             <div className={`status ${success ? "status-success" : ""}`}>{success ? "Success" : job?.status ?? "processing"}</div>
           </div>
           <p><strong>Job ID:</strong> {jobId}</p>
-          <p><strong>Style:</strong> {stylePreset === "realistic" ? "Realistic" : stylePreset === "stylized" ? "Stylized" : "Balanced"}</p>
+          <p><strong>Style:</strong> {stylePreset === "legacy" ? "Legacy" : stylePreset === "realistic" ? "Realistic" : stylePreset === "stylized" ? "Stylized" : "Balanced"}</p>
           <div className="grid">
             <StorefrontAsset title="Artistic Illustration" src={job?.artifacts.art ?? null} />
             <StorefrontAsset title="Production Toolpath SVG" src={job?.artifacts.toolpath_svg ?? null} />

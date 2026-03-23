@@ -20,3 +20,4 @@ Thumbs.db
 
 # Local secrets
 backend/.env
+backend/logs/

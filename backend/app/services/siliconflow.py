@@ -86,6 +86,11 @@ def _extract_first_image_payload(parsed: dict[str, Any]) -> tuple[str | None, st
     return (img.get("b64_json") or img.get("image"), img.get("url"))
 
 
+def _is_invalid_parameter_error(exc: Exception) -> bool:
+    text = str(exc)
+    return "SiliconFlow error 400" in text and '"code":20015' in text
+
+
 def _resolve_model_id(client: httpx.Client) -> str:
     # Requirement: force Kontext-dev for generation path.
     # Best-effort availability check is logged elsewhere; selection remains fixed.
@@ -181,8 +186,35 @@ def generate_candidates(
                 "prompt_enhancement": False,
                 "output_format": "png",
             }
+            retry_payloads: list[dict[str, Any]] = [payload]
+            # Some prompt/profile combinations can sporadically trigger SiliconFlow 400/code 20015.
+            # Retry with progressively simpler payloads before failing the variant.
+            retry_payloads.append({k: v for k, v in payload.items() if k != "negative_prompt"})
+            retry_payloads.append(
+                {
+                    "model": model_id,
+                    "prompt": resolved_prompt,
+                    "image": data_url,
+                    "output_format": "png",
+                }
+            )
             try:
-                parsed_payloads.append(_post_generation_with_retries(client, payload, model_id))
+                parsed_variant: dict[str, Any] | None = None
+                last_exc: Exception | None = None
+                for idx, retry_payload in enumerate(retry_payloads, start=1):
+                    try:
+                        parsed_variant = _post_generation_with_retries(client, retry_payload, model_id)
+                        break
+                    except Exception as exc:  # noqa: BLE001
+                        last_exc = exc
+                        if idx < len(retry_payloads) and _is_invalid_parameter_error(exc):
+                            continue
+                        raise
+                if parsed_variant is None and last_exc is not None:
+                    raise last_exc
+                if parsed_variant is None:
+                    raise RuntimeError("SiliconFlow generation returned no payload")
+                parsed_payloads.append(parsed_variant)
             except Exception as exc:  # noqa: BLE001
                 variant_errors.append(f"variant_{variant_idx}:{exc}")
                 continue

@@ -11,7 +11,7 @@ from PIL import Image, ImageOps
 POTRACE_TURDSIZE = "200"
 POTRACE_ALPHAMAX = "0.8"
 POTRACE_OPTTOLERANCE = "1.0"
-MIN_TEXT_COMPONENT = 40
+MIN_TEXT_COMPONENT = 20
 
 
 def _connected_components(binary: list[int], width: int, height: int) -> list[list[int]]:
@@ -169,6 +169,7 @@ def vectorize(
     *,
     turdsize: int = int(POTRACE_TURDSIZE),
     opttolerance: float = float(POTRACE_OPTTOLERANCE),
+    text_min_component: int = MIN_TEXT_COMPONENT,
 ) -> dict[str, float | int]:
     img = Image.open(binary_path).convert("L")
     img = ImageOps.autocontrast(img).point(lambda p: 0 if p < 128 else 255, mode="L")
@@ -177,7 +178,7 @@ def vectorize(
     components = _connected_components(binary, width, height)
 
     largest = max(components, key=len) if components else []
-    text_components = [c for c in components if len(c) >= MIN_TEXT_COMPONENT and c is not largest]
+    text_components = [c for c in components if len(c) >= text_min_component and c is not largest]
 
     star_mask = _mask_for_components(width, height, [largest] if largest else [])
     text_mask = _mask_for_components(width, height, text_components)

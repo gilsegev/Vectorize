@@ -34,6 +34,7 @@ FABRICATION_PRESETS: dict[FabricationStyle, tuple[float, int, float]] = {
     FabricationStyle.abstract_art: (0.65, 400, 2.0),
 }
 STYLE_TO_PROMPT: dict[StylePreset, PromptProfile] = {
+    StylePreset.legacy: PromptProfile.legacy,
     StylePreset.realistic: PromptProfile.realistic_seed,
     StylePreset.balanced: PromptProfile.balanced_default,
     StylePreset.stylized: PromptProfile.stylized_seed_do_not_default,
@@ -71,7 +72,7 @@ async def create_job_endpoint(
     potrace_turdsize: int | None = Form(None),
     potrace_opttolerance: float | None = Form(None),
     cleanup_threshold_bias: int = Form(0),
-    cleanup_min_component_px: int = Form(40),
+    cleanup_min_component_px: int = Form(20),
     cleanup_speck_morph: int = Form(0),
     source_frontend: SourceFrontend = Form(SourceFrontend.workbench),
 ) -> JobCreateResponse:
@@ -131,7 +132,7 @@ async def create_job_endpoint(
 
 @router.get("/style-capabilities")
 def style_capabilities() -> dict:
-    available = [StylePreset.realistic.value, StylePreset.balanced.value]
+    available = [StylePreset.legacy.value, StylePreset.realistic.value, StylePreset.balanced.value]
     if settings.enable_stylized_preset:
         available.append(StylePreset.stylized.value)
     return {

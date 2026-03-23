@@ -59,7 +59,7 @@ def cleanup_raster(
     subject_mask_path: Path | None = None,
     *,
     threshold_bias: int = 0,
-    min_component_px: int = 40,
+    min_component_px: int = 20,
     speck_morph: int = 0,
 ) -> None:
     img = Image.open(candidate_path).convert("L")
