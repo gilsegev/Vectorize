@@ -15,6 +15,10 @@ type PromptProfile =
   | "balanced_fallback_base_control"
   | "realistic_seed"
   | "stylized_seed_do_not_default"
+  | "stylized_v1_detail_preserving"
+  | "stylized_v2_balanced_cartoon"
+  | "stylized_v3_bold_cartoon"
+  | "stylized_v4_graphic_poster"
   | "variant_a_preserve_likeness"
   | "variant_b_selective_simplification"
   | "variant_c_realism_leaning";
@@ -82,6 +86,10 @@ const BENCHMARK_TAG_OPTIONS = [
   "storefront-balanced-default",
   "storefront-realistic-seed",
   "storefront-stylized-seed",
+  "stylized-v1",
+  "stylized-v2",
+  "stylized-v3",
+  "stylized-v4",
   "control-r1-base-prof-pen",
   "control-variant-a",
   "control-variant-b",
@@ -103,6 +111,10 @@ const PROMPT_PROFILE_BENCHMARK_TAG: Record<PromptProfile, string> = {
   balanced_fallback_base_control: "control-r1-base-prof-pen",
   realistic_seed: "storefront-realistic-seed",
   stylized_seed_do_not_default: "storefront-stylized-seed",
+  stylized_v1_detail_preserving: "stylized-v1",
+  stylized_v2_balanced_cartoon: "stylized-v2",
+  stylized_v3_bold_cartoon: "stylized-v3",
+  stylized_v4_graphic_poster: "stylized-v4",
   variant_a_preserve_likeness: "control-variant-a",
   variant_b_selective_simplification: "control-variant-b",
   variant_c_realism_leaning: "control-variant-c",
@@ -430,6 +442,10 @@ export default function HomePage() {
                 <option value="balanced_fallback_base_control">Balanced Fallback Base Control</option>
                 <option value="realistic_seed">Realistic Seed</option>
                 <option value="stylized_seed_do_not_default">Stylized Seed (Do Not Default)</option>
+                <option value="stylized_v1_detail_preserving">Stylized v1 Detail Preserving</option>
+                <option value="stylized_v2_balanced_cartoon">Stylized v2 Balanced Cartoon</option>
+                <option value="stylized_v3_bold_cartoon">Stylized v3 Bold Cartoon</option>
+                <option value="stylized_v4_graphic_poster">Stylized v4 Graphic Poster</option>
                 <option value="legacy">Legacy</option>
                 <option value="base_professional_pen">Base Professional Pen</option>
                 <option value="stronger_polish">Stronger Polish</option>

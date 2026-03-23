@@ -73,6 +73,50 @@ PROMPT_REGISTRY: dict[PromptProfile, dict[str, str]] = {
             "duplicated features, deformed structure, comic-book exaggeration, cartoon style, manga style, engraving texture, woodcut texture"
         ),
     },
+    PromptProfile.stylized_v1_detail_preserving: {
+        "prompt": (
+            "stylized professional black-ink line art of the uploaded image, clear cartoonized silhouette with preserved structure, "
+            "clean confident contours, keep distinctive internal mechanical features, simplify low-value texture only, "
+            "preserve emblem, grille pattern, wheel spoke readability, and major panel seams, polished decal-ready look on plain light background"
+        ),
+        "negative_prompt": (
+            "generic simplification, erased internal features, blank interior surfaces, muddy contour breaks, over-thinning key lines, "
+            "messy background, watercolor, painterly texture, photoreal shading, noisy micro speckles, duplicated geometry, deformed structure"
+        ),
+    },
+    PromptProfile.stylized_v2_balanced_cartoon: {
+        "prompt": (
+            "cartoon-leaning yet subject-faithful black-and-white line illustration of the uploaded image, bold outer contours, "
+            "selective interior detail, simplified forms, crisp high-contrast inking, preserve signature shape cues and important mechanical landmarks, "
+            "clean production-ready stylization on plain light background"
+        ),
+        "negative_prompt": (
+            "flat generic silhouette, missing grille pattern, missing wheel features, collapsed panel structure, over-detailed texture noise, "
+            "messy line chatter, photoreal shading, sketchy rough lines, comic halftone dots, gradient fills, watercolor wash"
+        ),
+    },
+    PromptProfile.stylized_v3_bold_cartoon: {
+        "prompt": (
+            "strongly stylized cartoon ink rendering of the uploaded image with bold contour hierarchy, thicker key outlines, "
+            "intentional simplification of secondary lines, keep recognizable subject identity and major structural geometry, "
+            "high-impact graphic decal style with clean black paths and no background clutter"
+        ),
+        "negative_prompt": (
+            "identity drift, altered proportions, removed key landmarks, chaotic texture, shaky sketch strokes, over-fragmented interior lines, "
+            "photoreal lighting, gray shading, painterly effects, soft blurred edges, excessive tiny artifacts"
+        ),
+    },
+    PromptProfile.stylized_v4_graphic_poster: {
+        "prompt": (
+            "graphic poster-style cartoon line art from the uploaded image, bold simplified masses, assertive outer silhouette, "
+            "minimal but strategic interior line accents, preserve core identity cues and dominant structural features, "
+            "clean geometric black ink shapes suitable for decal fabrication"
+        ),
+        "negative_prompt": (
+            "subject deformation, unreadable structure, random missing parts, muddy edges, fine noise texture, crosshatching, engraving look, "
+            "photoreal shadows, painterly brush texture, busy background, low-contrast gray tones"
+        ),
+    },
     PromptProfile.base_professional_pen: {
         "prompt": (
             "clean professional pen-and-ink line drawing of the uploaded image, restrained linework, strong outer contours, "
