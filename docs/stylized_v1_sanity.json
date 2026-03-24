@@ -1,0 +1,82 @@
+{
+  "run_started_unix": 1774245325.792795,
+  "run_completed_unix": 1774245621.1839652,
+  "api_base": "http://127.0.0.1:8000",
+  "image_dir": "d:\\vecrorize\\public\\benchmark_minimal",
+  "images": [
+    "star.jpg",
+    "family.jpg",
+    "nyc.jpg"
+  ],
+  "anchor_images": [
+    "star.jpg"
+  ],
+  "stylized_profiles": [
+    "stylized_v1_detail_preserving"
+  ],
+  "anchor_profiles": [
+    "legacy"
+  ],
+  "rows": [
+    {
+      "image": "star.jpg",
+      "is_anchor": true,
+      "profile": "legacy",
+      "job_id": "c625a510fde1",
+      "status": "completed",
+      "error": null,
+      "selected_candidate": "candidate_1.png",
+      "prompt_version": "2026-03-22-r1",
+      "node_count": 138,
+      "mse_fidelity": 0.0,
+      "small_component_count": 2,
+      "interior_line_density": 0.054587,
+      "output_dir": "D:\\vecrorize\\public\\Assets\\20260323_055450\\c625a510fde1"
+    },
+    {
+      "image": "star.jpg",
+      "is_anchor": true,
+      "profile": "stylized_v1_detail_preserving",
+      "job_id": "5b97ca00dc3d",
+      "status": "completed",
+      "error": null,
+      "selected_candidate": "candidate_1.png",
+      "prompt_version": "2026-03-22-r1",
+      "node_count": 39,
+      "mse_fidelity": 0.0,
+      "small_component_count": 0,
+      "interior_line_density": 0.139881,
+      "output_dir": "D:\\vecrorize\\public\\Assets\\20260323_055450\\5b97ca00dc3d"
+    },
+    {
+      "image": "family.jpg",
+      "is_anchor": false,
+      "profile": "stylized_v1_detail_preserving",
+      "job_id": "ac3bc6c56fa7",
+      "status": "completed",
+      "error": null,
+      "selected_candidate": "candidate_1.png",
+      "prompt_version": "2026-03-22-r1",
+      "node_count": 1014,
+      "mse_fidelity": 0.0,
+      "small_component_count": 10,
+      "interior_line_density": 0.13363,
+      "output_dir": "D:\\vecrorize\\public\\Assets\\20260323_055450\\ac3bc6c56fa7"
+    },
+    {
+      "image": "nyc.jpg",
+      "is_anchor": false,
+      "profile": "stylized_v1_detail_preserving",
+      "job_id": "0d1b8dc3b788",
+      "status": "completed",
+      "error": null,
+      "selected_candidate": "candidate_1.png",
+      "prompt_version": "2026-03-22-r1",
+      "node_count": 5058,
+      "mse_fidelity": 0.0,
+      "small_component_count": 152,
+      "interior_line_density": 0.007323,
+      "output_dir": "D:\\vecrorize\\public\\Assets\\20260323_055450\\0d1b8dc3b788"
+    }
+  ]
+}

@@ -1,0 +1,439 @@
+<!doctype html>
+<html><head><meta charset="utf-8" />
+<title>Stylized Benchmark Comparison Board</title>
+<style>
+body{font-family:Segoe UI,Arial,sans-serif;background:#0b1020;color:#e6ebff;margin:0;padding:20px;}
+.hero{background:#111931;border:1px solid #29406a;border-radius:12px;padding:16px;margin-bottom:16px;}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(280px,1fr));gap:12px;}
+.card{background:#141f38;border:1px solid #2f4b7b;border-radius:10px;padding:10px;}
+.winner{outline:3px solid #2ecc71;box-shadow:0 0 0 2px #1f7a45 inset;}
+.badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;margin-left:8px;background:#334a78;}
+.badge-win{background:#1f7a45;color:#d5ffe8;font-weight:700;}
+.badge-fail{background:#7a1f2a;color:#ffd6db;}
+img{width:100%;height:auto;border-radius:8px;border:1px solid #405a88;background:#0a0f1f;}
+.meta{font-size:12px;color:#b9c6e8;line-height:1.35;margin-top:8px;}
+.section{margin-bottom:24px;}
+h1,h2,h3{margin:0 0 10px;}
+a{color:#8eb9ff;text-decoration:none;}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+</style></head><body>
+<div class="hero">
+<h1>Stylized Minimal R1 Comparison Board</h1>
+<div>Overall Winner Profile: <strong>stylized_v1_detail_preserving</strong></div>
+<div class="meta">Winner heuristic: low-to-moderate node count, low speckles, interior density near stylized target (0.13).</div>
+</div>
+<div class="section">
+<h2>car.jpg <span class="badge badge-win">Winner: stylized_v1_detail_preserving</span></h2>
+<div class="grid">
+<div class="card">
+<h3>legacy 
+<span class="badge">completed</span>
+</h3>
+<div class="two">
+<div><div class="meta">05 Refined</div><img src="file:///D:/vecrorize/public/Assets/20260323_034029/61e508362a14/05_generation_refined.png" alt="refined" /></div>
+<div><div class="meta">09 Final</div><img src="file:///D:/vecrorize/public/Assets/20260323_034029/61e508362a14/09_vector_final_preview.png" alt="final" /></div>
+</div>
+<div class="meta">
+job_id=61e508362a14<br/>
+node_count=905 | small_components=8 | interior_line_density=0.112253<br/>
+output_dir=<a href="file:///D:/vecrorize/public/Assets/20260323_034029/61e508362a14">D:/vecrorize/public/Assets/20260323_034029/61e508362a14</a>
+</div>
+</div>
+<div class="card">
+<h3>balanced_default 
+<span class="badge">completed</span>
+</h3>
+<div class="two">
+<div><div class="meta">05 Refined</div><img src="file:///D:/vecrorize/public/Assets/20260323_034029/ea317124e164/05_generation_refined.png" alt="refined" /></div>
+<div><div class="meta">09 Final</div><img src="file:///D:/vecrorize/public/Assets/20260323_034029/ea317124e164/09_vector_final_preview.png" alt="final" /></div>
+</div>
+<div class="meta">
+job_id=ea317124e164<br/>
+node_count=1526 | small_components=17 | interior_line_density=0.008375<br/>
+output_dir=<a href="file:///D:/vecrorize/public/Assets/20260323_034029/ea317124e164">D:/vecrorize/public/Assets/20260323_034029/ea317124e164</a>
+</div>
+</div>
+<div class="card winner">
+<h3>stylized_v1_detail_preserving 
+<span class="badge badge-win">WINNER</span>
+</h3>
+<div class="two">
+<div><div class="meta">05 Refined</div><img src="file:///D:/vecrorize/public/Assets/20260323_034029/9d12d5a13d15/05_generation_refined.png" alt="refined" /></div>
+<div><div class="meta">09 Final</div><img src="file:///D:/vecrorize/public/Assets/20260323_034029/9d12d5a13d15/09_vector_final_preview.png" alt="final" /></div>
+</div>
+<div class="meta">
+job_id=9d12d5a13d15<br/>
+node_count=612 | small_components=4 | interior_line_density=0.143064<br/>
+output_dir=<a href="file:///D:/vecrorize/public/Assets/20260323_034029/9d12d5a13d15">D:/vecrorize/public/Assets/20260323_034029/9d12d5a13d15</a>
+</div>
+</div>
+<div class="card">
+<h3>stylized_v2_balanced_cartoon 
+<span class="badge">completed</span>
+</h3>
+<div class="two">
+<div><div class="meta">05 Refined</div><img src="file:///D:/vecrorize/public/Assets/20260323_034029/b9b255dd8480/05_generation_refined.png" alt="refined" /></div>
+<div><div class="meta">09 Final</div><img src="file:///D:/vecrorize/public/Assets/20260323_034029/b9b255dd8480/09_vector_final_preview.png" alt="final" /></div>
+</div>
+<div class="meta">
+job_id=b9b255dd8480<br/>
+node_count=1302 | small_components=31 | interior_line_density=0.021267<br/>
+output_dir=<a href="file:///D:/vecrorize/public/Assets/20260323_034029/b9b255dd8480">D:/vecrorize/public/Assets/20260323_034029/b9b255dd8480</a>
+</div>
+</div>
+<div class="card">
+<h3>stylized_v3_bold_cartoon 
+<span class="badge">completed</span>
+</h3>
+<div class="two">
+<div><div class="meta">05 Refined</div><img src="file:///D:/vecrorize/public/Assets/20260323_034029/e15c3e9e712a/05_generation_refined.png" alt="refined" /></div>
+<div><div class="meta">09 Final</div><img src="file:///D:/vecrorize/public/Assets/20260323_034029/e15c3e9e712a/09_vector_final_preview.png" alt="final" /></div>
+</div>
+<div class="meta">
+job_id=e15c3e9e712a<br/>
+node_count=859 | small_components=5 | interior_line_density=0.211288<br/>
+output_dir=<a href="file:///D:/vecrorize/public/Assets/20260323_034029/e15c3e9e712a">D:/vecrorize/public/Assets/20260323_034029/e15c3e9e712a</a>
+</div>
+</div>
+<div class="card">
+<h3>stylized_v4_graphic_poster 
+<span class="badge">completed</span>
+</h3>
+<div class="two">
+<div><div class="meta">05 Refined</div><img src="file:///D:/vecrorize/public/Assets/20260323_034029/b0ff6b2e0ebe/05_generation_refined.png" alt="refined" /></div>
+<div><div class="meta">09 Final</div><img src="file:///D:/vecrorize/public/Assets/20260323_034029/b0ff6b2e0ebe/09_vector_final_preview.png" alt="final" /></div>
+</div>
+<div class="meta">
+job_id=b0ff6b2e0ebe<br/>
+node_count=771 | small_components=6 | interior_line_density=0.131087<br/>
+output_dir=<a href="file:///D:/vecrorize/public/Assets/20260323_034029/b0ff6b2e0ebe">D:/vecrorize/public/Assets/20260323_034029/b0ff6b2e0ebe</a>
+</div>
+</div>
+</div></div>
+<div class="section">
+<h2>cat.jpg <span class="badge badge-win">Winner: stylized_v2_balanced_cartoon</span></h2>
+<div class="grid">
+<div class="card">
+<h3>stylized_v1_detail_preserving 
+<span class="badge">completed</span>
+</h3>
+<div class="two">
+<div><div class="meta">05 Refined</div><img src="file:///D:/vecrorize/public/Assets/20260323_034029/a1ed35b84bf6/05_generation_refined.png" alt="refined" /></div>
+<div><div class="meta">09 Final</div><img src="file:///D:/vecrorize/public/Assets/20260323_034029/a1ed35b84bf6/09_vector_final_preview.png" alt="final" /></div>
+</div>
+<div class="meta">
+job_id=a1ed35b84bf6<br/>
+node_count=356 | small_components=0 | interior_line_density=0.099689<br/>
+output_dir=<a href="file:///D:/vecrorize/public/Assets/20260323_034029/a1ed35b84bf6">D:/vecrorize/public/Assets/20260323_034029/a1ed35b84bf6</a>
+</div>
+</div>
+<div class="card winner">
+<h3>stylized_v2_balanced_cartoon 
+<span class="badge badge-win">WINNER</span>
+</h3>
+<div class="two">
+<div><div class="meta">05 Refined</div><img src="file:///D:/vecrorize/public/Assets/20260323_034029/a9105ec4c228/05_generation_refined.png" alt="refined" /></div>
+<div><div class="meta">09 Final</div><img src="file:///D:/vecrorize/public/Assets/20260323_034029/a9105ec4c228/09_vector_final_preview.png" alt="final" /></div>
+</div>
+<div class="meta">
+job_id=a9105ec4c228<br/>
+node_count=294 | small_components=0 | interior_line_density=0.131357<br/>
+output_dir=<a href="file:///D:/vecrorize/public/Assets/20260323_034029/a9105ec4c228">D:/vecrorize/public/Assets/20260323_034029/a9105ec4c228</a>
+</div>
+</div>
+<div class="card">
+<h3>stylized_v3_bold_cartoon 
+<span class="badge">completed</span>
+</h3>
+<div class="two">
+<div><div class="meta">05 Refined</div><img src="file:///D:/vecrorize/public/Assets/20260323_034029/bec2cc96e075/05_generation_refined.png" alt="refined" /></div>
+<div><div class="meta">09 Final</div><img src="file:///D:/vecrorize/public/Assets/20260323_034029/bec2cc96e075/09_vector_final_preview.png" alt="final" /></div>
+</div>
+<div class="meta">
+job_id=bec2cc96e075<br/>
+node_count=616 | small_components=0 | interior_line_density=0.164291<br/>
+output_dir=<a href="file:///D:/vecrorize/public/Assets/20260323_034029/bec2cc96e075">D:/vecrorize/public/Assets/20260323_034029/bec2cc96e075</a>
+</div>
+</div>
+<div class="card">
+<h3>stylized_v4_graphic_poster 
+<span class="badge">completed</span>
+</h3>
+<div class="two">
+<div><div class="meta">05 Refined</div><img src="file:///D:/vecrorize/public/Assets/20260323_034029/a78cdad39ba5/05_generation_refined.png" alt="refined" /></div>
+<div><div class="meta">09 Final</div><img src="file:///D:/vecrorize/public/Assets/20260323_034029/a78cdad39ba5/09_vector_final_preview.png" alt="final" /></div>
+</div>
+<div class="meta">
+job_id=a78cdad39ba5<br/>
+node_count=331 | small_components=0 | interior_line_density=0.161695<br/>
+output_dir=<a href="file:///D:/vecrorize/public/Assets/20260323_034029/a78cdad39ba5">D:/vecrorize/public/Assets/20260323_034029/a78cdad39ba5</a>
+</div>
+</div>
+</div></div>
+<div class="section">
+<h2>cow.jpg <span class="badge badge-win">Winner: stylized_v1_detail_preserving</span></h2>
+<div class="grid">
+<div class="card winner">
+<h3>stylized_v1_detail_preserving 
+<span class="badge badge-win">WINNER</span>
+</h3>
+<div class="two">
+<div><div class="meta">05 Refined</div><img src="file:///D:/vecrorize/public/Assets/20260323_034029/3ce2fc0be95c/05_generation_refined.png" alt="refined" /></div>
+<div><div class="meta">09 Final</div><img src="file:///D:/vecrorize/public/Assets/20260323_034029/3ce2fc0be95c/09_vector_final_preview.png" alt="final" /></div>
+</div>
+<div class="meta">
+job_id=3ce2fc0be95c<br/>
+node_count=102 | small_components=0 | interior_line_density=0.113233<br/>
+output_dir=<a href="file:///D:/vecrorize/public/Assets/20260323_034029/3ce2fc0be95c">D:/vecrorize/public/Assets/20260323_034029/3ce2fc0be95c</a>
+</div>
+</div>
+<div class="card">
+<h3>stylized_v2_balanced_cartoon 
+<span class="badge">completed</span>
+</h3>
+<div class="two">
+<div><div class="meta">05 Refined</div><img src="file:///D:/vecrorize/public/Assets/20260323_034029/00238583e98d/05_generation_refined.png" alt="refined" /></div>
+<div><div class="meta">09 Final</div><img src="file:///D:/vecrorize/public/Assets/20260323_034029/00238583e98d/09_vector_final_preview.png" alt="final" /></div>
+</div>
+<div class="meta">
+job_id=00238583e98d<br/>
+node_count=137 | small_components=0 | interior_line_density=0.075596<br/>
+output_dir=<a href="file:///D:/vecrorize/public/Assets/20260323_034029/00238583e98d">D:/vecrorize/public/Assets/20260323_034029/00238583e98d</a>
+</div>
+</div>
+<div class="card">
+<h3>stylized_v3_bold_cartoon 
+<span class="badge badge-fail">failed</span>
+</h3>
+<div class="meta">No preview (run failed).</div>
+<div class="meta">
+job_id=e068873b94e3<br/>
+node_count=None | small_components=None | interior_line_density=None<br/>
+output_dir=<a href="file:///D:/vecrorize/public/Assets/20260323_034029/e068873b94e3">D:/vecrorize/public/Assets/20260323_034029/e068873b94e3</a>
+<br/>error=RuntimeError: All generation variant requests failed (model=black-forest-labs/FLUX.1-Kontext-dev): variant_1:SiliconFlow generation request failed after retries (model=black-forest-labs/FLUX.1-Kontext-dev): RemoteProtoco
+</div>
+</div>
+<div class="card">
+<h3>stylized_v4_graphic_poster 
+<span class="badge">completed</span>
+</h3>
+<div class="two">
+<div><div class="meta">05 Refined</div><img src="file:///D:/vecrorize/public/Assets/20260323_034029/600d1cce3416/05_generation_refined.png" alt="refined" /></div>
+<div><div class="meta">09 Final</div><img src="file:///D:/vecrorize/public/Assets/20260323_034029/600d1cce3416/09_vector_final_preview.png" alt="final" /></div>
+</div>
+<div class="meta">
+job_id=600d1cce3416<br/>
+node_count=220 | small_components=0 | interior_line_density=0.060902<br/>
+output_dir=<a href="file:///D:/vecrorize/public/Assets/20260323_034029/600d1cce3416">D:/vecrorize/public/Assets/20260323_034029/600d1cce3416</a>
+</div>
+</div>
+</div></div>
+<div class="section">
+<h2>family.jpg <span class="badge badge-win">Winner: stylized_v1_detail_preserving</span></h2>
+<div class="grid">
+<div class="card">
+<h3>legacy 
+<span class="badge">completed</span>
+</h3>
+<div class="two">
+<div><div class="meta">05 Refined</div><img src="file:///D:/vecrorize/public/Assets/20260323_034029/688c688bc7b6/05_generation_refined.png" alt="refined" /></div>
+<div><div class="meta">09 Final</div><img src="file:///D:/vecrorize/public/Assets/20260323_034029/688c688bc7b6/09_vector_final_preview.png" alt="final" /></div>
+</div>
+<div class="meta">
+job_id=688c688bc7b6<br/>
+node_count=893 | small_components=12 | interior_line_density=0.134778<br/>
+output_dir=<a href="file:///D:/vecrorize/public/Assets/20260323_034029/688c688bc7b6">D:/vecrorize/public/Assets/20260323_034029/688c688bc7b6</a>
+</div>
+</div>
+<div class="card">
+<h3>balanced_default 
+<span class="badge">completed</span>
+</h3>
+<div class="two">
+<div><div class="meta">05 Refined</div><img src="file:///D:/vecrorize/public/Assets/20260323_034029/aadbd8ea411b/05_generation_refined.png" alt="refined" /></div>
+<div><div class="meta">09 Final</div><img src="file:///D:/vecrorize/public/Assets/20260323_034029/aadbd8ea411b/09_vector_final_preview.png" alt="final" /></div>
+</div>
+<div class="meta">
+job_id=aadbd8ea411b<br/>
+node_count=1311 | small_components=23 | interior_line_density=0.034995<br/>
+output_dir=<a href="file:///D:/vecrorize/public/Assets/20260323_034029/aadbd8ea411b">D:/vecrorize/public/Assets/20260323_034029/aadbd8ea411b</a>
+</div>
+</div>
+<div class="card winner">
+<h3>stylized_v1_detail_preserving 
+<span class="badge badge-win">WINNER</span>
+</h3>
+<div class="two">
+<div><div class="meta">05 Refined</div><img src="file:///D:/vecrorize/public/Assets/20260323_034029/24ef9e45d1fe/05_generation_refined.png" alt="refined" /></div>
+<div><div class="meta">09 Final</div><img src="file:///D:/vecrorize/public/Assets/20260323_034029/24ef9e45d1fe/09_vector_final_preview.png" alt="final" /></div>
+</div>
+<div class="meta">
+job_id=24ef9e45d1fe<br/>
+node_count=360 | small_components=0 | interior_line_density=0.120315<br/>
+output_dir=<a href="file:///D:/vecrorize/public/Assets/20260323_034029/24ef9e45d1fe">D:/vecrorize/public/Assets/20260323_034029/24ef9e45d1fe</a>
+</div>
+</div>
+<div class="card">
+<h3>stylized_v2_balanced_cartoon 
+<span class="badge">completed</span>
+</h3>
+<div class="two">
+<div><div class="meta">05 Refined</div><img src="file:///D:/vecrorize/public/Assets/20260323_034029/bf29299bd1cd/05_generation_refined.png" alt="refined" /></div>
+<div><div class="meta">09 Final</div><img src="file:///D:/vecrorize/public/Assets/20260323_034029/bf29299bd1cd/09_vector_final_preview.png" alt="final" /></div>
+</div>
+<div class="meta">
+job_id=bf29299bd1cd<br/>
+node_count=1067 | small_components=4 | interior_line_density=0.113605<br/>
+output_dir=<a href="file:///D:/vecrorize/public/Assets/20260323_034029/bf29299bd1cd">D:/vecrorize/public/Assets/20260323_034029/bf29299bd1cd</a>
+</div>
+</div>
+<div class="card">
+<h3>stylized_v3_bold_cartoon 
+<span class="badge">completed</span>
+</h3>
+<div class="two">
+<div><div class="meta">05 Refined</div><img src="file:///D:/vecrorize/public/Assets/20260323_034029/439c19b5a0ae/05_generation_refined.png" alt="refined" /></div>
+<div><div class="meta">09 Final</div><img src="file:///D:/vecrorize/public/Assets/20260323_034029/439c19b5a0ae/09_vector_final_preview.png" alt="final" /></div>
+</div>
+<div class="meta">
+job_id=439c19b5a0ae<br/>
+node_count=994 | small_components=9 | interior_line_density=0.171927<br/>
+output_dir=<a href="file:///D:/vecrorize/public/Assets/20260323_034029/439c19b5a0ae">D:/vecrorize/public/Assets/20260323_034029/439c19b5a0ae</a>
+</div>
+</div>
+<div class="card">
+<h3>stylized_v4_graphic_poster 
+<span class="badge">completed</span>
+</h3>
+<div class="two">
+<div><div class="meta">05 Refined</div><img src="file:///D:/vecrorize/public/Assets/20260323_034029/ee3d64114856/05_generation_refined.png" alt="refined" /></div>
+<div><div class="meta">09 Final</div><img src="file:///D:/vecrorize/public/Assets/20260323_034029/ee3d64114856/09_vector_final_preview.png" alt="final" /></div>
+</div>
+<div class="meta">
+job_id=ee3d64114856<br/>
+node_count=735 | small_components=8 | interior_line_density=0.189672<br/>
+output_dir=<a href="file:///D:/vecrorize/public/Assets/20260323_034029/ee3d64114856">D:/vecrorize/public/Assets/20260323_034029/ee3d64114856</a>
+</div>
+</div>
+</div></div>
+<div class="section">
+<h2>nyc.jpg <span class="badge badge-win">Winner: stylized_v1_detail_preserving</span></h2>
+<div class="grid">
+<div class="card winner">
+<h3>stylized_v1_detail_preserving 
+<span class="badge badge-win">WINNER</span>
+</h3>
+<div class="two">
+<div><div class="meta">05 Refined</div><img src="file:///D:/vecrorize/public/Assets/20260323_034029/b13e38fd1278/05_generation_refined.png" alt="refined" /></div>
+<div><div class="meta">09 Final</div><img src="file:///D:/vecrorize/public/Assets/20260323_034029/b13e38fd1278/09_vector_final_preview.png" alt="final" /></div>
+</div>
+<div class="meta">
+job_id=b13e38fd1278<br/>
+node_count=406 | small_components=6 | interior_line_density=0.108229<br/>
+output_dir=<a href="file:///D:/vecrorize/public/Assets/20260323_034029/b13e38fd1278">D:/vecrorize/public/Assets/20260323_034029/b13e38fd1278</a>
+</div>
+</div>
+<div class="card">
+<h3>stylized_v2_balanced_cartoon 
+<span class="badge">completed</span>
+</h3>
+<div class="two">
+<div><div class="meta">05 Refined</div><img src="file:///D:/vecrorize/public/Assets/20260323_034029/f0df611dcb67/05_generation_refined.png" alt="refined" /></div>
+<div><div class="meta">09 Final</div><img src="file:///D:/vecrorize/public/Assets/20260323_034029/f0df611dcb67/09_vector_final_preview.png" alt="final" /></div>
+</div>
+<div class="meta">
+job_id=f0df611dcb67<br/>
+node_count=5030 | small_components=295 | interior_line_density=0.169287<br/>
+output_dir=<a href="file:///D:/vecrorize/public/Assets/20260323_034029/f0df611dcb67">D:/vecrorize/public/Assets/20260323_034029/f0df611dcb67</a>
+</div>
+</div>
+<div class="card">
+<h3>stylized_v3_bold_cartoon 
+<span class="badge">completed</span>
+</h3>
+<div class="two">
+<div><div class="meta">05 Refined</div><img src="file:///D:/vecrorize/public/Assets/20260323_034029/f97ac9882301/05_generation_refined.png" alt="refined" /></div>
+<div><div class="meta">09 Final</div><img src="file:///D:/vecrorize/public/Assets/20260323_034029/f97ac9882301/09_vector_final_preview.png" alt="final" /></div>
+</div>
+<div class="meta">
+job_id=f97ac9882301<br/>
+node_count=3831 | small_components=169 | interior_line_density=0.278705<br/>
+output_dir=<a href="file:///D:/vecrorize/public/Assets/20260323_034029/f97ac9882301">D:/vecrorize/public/Assets/20260323_034029/f97ac9882301</a>
+</div>
+</div>
+<div class="card">
+<h3>stylized_v4_graphic_poster 
+<span class="badge">completed</span>
+</h3>
+<div class="two">
+<div><div class="meta">05 Refined</div><img src="file:///D:/vecrorize/public/Assets/20260323_034029/de9986c0ddef/05_generation_refined.png" alt="refined" /></div>
+<div><div class="meta">09 Final</div><img src="file:///D:/vecrorize/public/Assets/20260323_034029/de9986c0ddef/09_vector_final_preview.png" alt="final" /></div>
+</div>
+<div class="meta">
+job_id=de9986c0ddef<br/>
+node_count=5368 | small_components=84 | interior_line_density=0.014977<br/>
+output_dir=<a href="file:///D:/vecrorize/public/Assets/20260323_034029/de9986c0ddef">D:/vecrorize/public/Assets/20260323_034029/de9986c0ddef</a>
+</div>
+</div>
+</div></div>
+<div class="section">
+<h2>star.jpg <span class="badge badge-win">Winner: stylized_v4_graphic_poster</span></h2>
+<div class="grid">
+<div class="card">
+<h3>stylized_v1_detail_preserving 
+<span class="badge">completed</span>
+</h3>
+<div class="two">
+<div><div class="meta">05 Refined</div><img src="file:///D:/vecrorize/public/Assets/20260323_034029/503e356bb9cb/05_generation_refined.png" alt="refined" /></div>
+<div><div class="meta">09 Final</div><img src="file:///D:/vecrorize/public/Assets/20260323_034029/503e356bb9cb/09_vector_final_preview.png" alt="final" /></div>
+</div>
+<div class="meta">
+job_id=503e356bb9cb<br/>
+node_count=289 | small_components=0 | interior_line_density=0.104609<br/>
+output_dir=<a href="file:///D:/vecrorize/public/Assets/20260323_034029/503e356bb9cb">D:/vecrorize/public/Assets/20260323_034029/503e356bb9cb</a>
+</div>
+</div>
+<div class="card">
+<h3>stylized_v2_balanced_cartoon 
+<span class="badge">completed</span>
+</h3>
+<div class="two">
+<div><div class="meta">05 Refined</div><img src="file:///D:/vecrorize/public/Assets/20260323_034029/ed978f848a20/05_generation_refined.png" alt="refined" /></div>
+<div><div class="meta">09 Final</div><img src="file:///D:/vecrorize/public/Assets/20260323_034029/ed978f848a20/09_vector_final_preview.png" alt="final" /></div>
+</div>
+<div class="meta">
+job_id=ed978f848a20<br/>
+node_count=141 | small_components=1 | interior_line_density=0.045871<br/>
+output_dir=<a href="file:///D:/vecrorize/public/Assets/20260323_034029/ed978f848a20">D:/vecrorize/public/Assets/20260323_034029/ed978f848a20</a>
+</div>
+</div>
+<div class="card">
+<h3>stylized_v3_bold_cartoon 
+<span class="badge">completed</span>
+</h3>
+<div class="two">
+<div><div class="meta">05 Refined</div><img src="file:///D:/vecrorize/public/Assets/20260323_034029/7e4c0b28c24e/05_generation_refined.png" alt="refined" /></div>
+<div><div class="meta">09 Final</div><img src="file:///D:/vecrorize/public/Assets/20260323_034029/7e4c0b28c24e/09_vector_final_preview.png" alt="final" /></div>
+</div>
+<div class="meta">
+job_id=7e4c0b28c24e<br/>
+node_count=88 | small_components=1 | interior_line_density=0.249373<br/>
+output_dir=<a href="file:///D:/vecrorize/public/Assets/20260323_034029/7e4c0b28c24e">D:/vecrorize/public/Assets/20260323_034029/7e4c0b28c24e</a>
+</div>
+</div>
+<div class="card winner">
+<h3>stylized_v4_graphic_poster 
+<span class="badge badge-win">WINNER</span>
+</h3>
+<div class="two">
+<div><div class="meta">05 Refined</div><img src="file:///D:/vecrorize/public/Assets/20260323_034029/b816374987e2/05_generation_refined.png" alt="refined" /></div>
+<div><div class="meta">09 Final</div><img src="file:///D:/vecrorize/public/Assets/20260323_034029/b816374987e2/09_vector_final_preview.png" alt="final" /></div>
+</div>
+<div class="meta">
+job_id=b816374987e2<br/>
+node_count=123 | small_components=4 | interior_line_density=0.091792<br/>
+output_dir=<a href="file:///D:/vecrorize/public/Assets/20260323_034029/b816374987e2">D:/vecrorize/public/Assets/20260323_034029/b816374987e2</a>
+</div>
+</div>
+</div></div>
+</body></html>

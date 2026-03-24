@@ -1,0 +1,5 @@
+image,is_anchor,profile,job_id,status,error,selected_candidate,prompt_version,node_count,mse_fidelity,small_component_count,interior_line_density,output_dir
+star.jpg,True,legacy,c625a510fde1,completed,,candidate_1.png,2026-03-22-r1,138,0.0,2,0.054587,D:\vecrorize\public\Assets\20260323_055450\c625a510fde1
+star.jpg,True,stylized_v1_detail_preserving,5b97ca00dc3d,completed,,candidate_1.png,2026-03-22-r1,39,0.0,0,0.139881,D:\vecrorize\public\Assets\20260323_055450\5b97ca00dc3d
+family.jpg,False,stylized_v1_detail_preserving,ac3bc6c56fa7,completed,,candidate_1.png,2026-03-22-r1,1014,0.0,10,0.13363,D:\vecrorize\public\Assets\20260323_055450\ac3bc6c56fa7
+nyc.jpg,False,stylized_v1_detail_preserving,0d1b8dc3b788,completed,,candidate_1.png,2026-03-22-r1,5058,0.0,152,0.007323,D:\vecrorize\public\Assets\20260323_055450\0d1b8dc3b788

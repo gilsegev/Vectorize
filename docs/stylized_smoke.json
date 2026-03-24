@@ -1,0 +1,66 @@
+{
+  "run_started_unix": 1774237288.7482808,
+  "run_completed_unix": 1774237470.2243962,
+  "api_base": "http://127.0.0.1:8000",
+  "image_dir": "d:\\vecrorize\\public\\Assets\\20260323_030539\\471f9cca9e9c",
+  "images": [
+    "01_input_original.png"
+  ],
+  "anchor_images": [
+    "01_input_original.png"
+  ],
+  "stylized_profiles": [
+    "stylized_v1_detail_preserving"
+  ],
+  "anchor_profiles": [
+    "legacy",
+    "balanced_default"
+  ],
+  "rows": [
+    {
+      "image": "01_input_original.png",
+      "is_anchor": true,
+      "profile": "legacy",
+      "job_id": "0cdf2658198c",
+      "status": "completed",
+      "error": null,
+      "selected_candidate": "candidate_1.png",
+      "prompt_version": "2026-03-22-r1",
+      "node_count": 756,
+      "mse_fidelity": 0.0,
+      "small_component_count": 4,
+      "interior_line_density": 0.120425,
+      "output_dir": "D:\\vecrorize\\public\\Assets\\20260323_034029\\0cdf2658198c"
+    },
+    {
+      "image": "01_input_original.png",
+      "is_anchor": true,
+      "profile": "balanced_default",
+      "job_id": "67e9d1fd086f",
+      "status": "completed",
+      "error": null,
+      "selected_candidate": "candidate_1.png",
+      "prompt_version": "2026-03-22-r1",
+      "node_count": 1236,
+      "mse_fidelity": 0.0,
+      "small_component_count": 28,
+      "interior_line_density": 0.005078,
+      "output_dir": "D:\\vecrorize\\public\\Assets\\20260323_034029\\67e9d1fd086f"
+    },
+    {
+      "image": "01_input_original.png",
+      "is_anchor": true,
+      "profile": "stylized_v1_detail_preserving",
+      "job_id": "cf15f7dfa588",
+      "status": "completed",
+      "error": null,
+      "selected_candidate": "candidate_1.png",
+      "prompt_version": "2026-03-22-r1",
+      "node_count": 819,
+      "mse_fidelity": 0.0,
+      "small_component_count": 12,
+      "interior_line_density": 0.087289,
+      "output_dir": "D:\\vecrorize\\public\\Assets\\20260323_034029\\cf15f7dfa588"
+    }
+  ]
+}

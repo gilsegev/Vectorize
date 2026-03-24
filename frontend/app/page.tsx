@@ -208,8 +208,8 @@ export default function HomePage() {
       return;
     }
     if (mode === "stylized") {
-      setPromptProfile("stylized_seed_do_not_default");
-      setBenchmarkTag(PROMPT_PROFILE_BENCHMARK_TAG.stylized_seed_do_not_default);
+      setPromptProfile("stylized_v3_bold_cartoon");
+      setBenchmarkTag(PROMPT_PROFILE_BENCHMARK_TAG.stylized_v3_bold_cartoon);
       return;
     }
     setPromptProfile("balanced_default");
@@ -438,13 +438,13 @@ export default function HomePage() {
                   setBenchmarkTag(PROMPT_PROFILE_BENCHMARK_TAG[nextProfile]);
                 }}
               >
-                <option value="balanced_default">Balanced Default</option>
+                <option value="realistic_seed">Realistic (Primary)</option>
+                <option value="balanced_default">Balanced (Primary)</option>
+                <option value="stylized_v3_bold_cartoon">Stylized (Primary)</option>
                 <option value="balanced_fallback_base_control">Balanced Fallback Base Control</option>
-                <option value="realistic_seed">Realistic Seed</option>
                 <option value="stylized_seed_do_not_default">Stylized Seed (Do Not Default)</option>
                 <option value="stylized_v1_detail_preserving">Stylized v1 Detail Preserving</option>
                 <option value="stylized_v2_balanced_cartoon">Stylized v2 Balanced Cartoon</option>
-                <option value="stylized_v3_bold_cartoon">Stylized v3 Bold Cartoon</option>
                 <option value="stylized_v4_graphic_poster">Stylized v4 Graphic Poster</option>
                 <option value="legacy">Legacy</option>
                 <option value="base_professional_pen">Base Professional Pen</option>

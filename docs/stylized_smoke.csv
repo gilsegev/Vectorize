@@ -1,0 +1,4 @@
+image,is_anchor,profile,job_id,status,error,selected_candidate,prompt_version,node_count,mse_fidelity,small_component_count,interior_line_density,output_dir
+01_input_original.png,True,legacy,0cdf2658198c,completed,,candidate_1.png,2026-03-22-r1,756,0.0,4,0.120425,D:\vecrorize\public\Assets\20260323_034029\0cdf2658198c
+01_input_original.png,True,balanced_default,67e9d1fd086f,completed,,candidate_1.png,2026-03-22-r1,1236,0.0,28,0.005078,D:\vecrorize\public\Assets\20260323_034029\67e9d1fd086f
+01_input_original.png,True,stylized_v1_detail_preserving,cf15f7dfa588,completed,,candidate_1.png,2026-03-22-r1,819,0.0,12,0.087289,D:\vecrorize\public\Assets\20260323_034029\cf15f7dfa588

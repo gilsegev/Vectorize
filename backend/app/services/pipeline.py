@@ -6,7 +6,7 @@ from threading import Thread
 
 from app.config import settings as app_settings
 from app.models import JobSettings, JobStatus, SelectionMode
-from app.services.image_ops import cleanup_raster, normalize_upload, preprocess
+from app.services.image_ops import cleanup_raster, normalize_upload, preprocess, subject_mask_coverage
 from app.services.siliconflow import FORCED_MODEL, generate_candidates, refine_candidate_with_inking
 from app.services.storage import (
     append_run_log,
@@ -21,6 +21,10 @@ from app.services.vectorize import vectorize
 
 
 class PipelineService:
+    def _elapsed(self, start: float) -> tuple[float, float]:
+        elapsed_s = time.perf_counter() - start
+        return elapsed_s, round(elapsed_s * 1000, 2)
+
     def start_job(self, job_id: str, upload_bytes: bytes, original_filename: str) -> None:
         append_run_log(job_id, "low", "Job accepted", original_filename=original_filename, upload_bytes=len(upload_bytes))
         thread = Thread(target=self._run_until_selection_or_complete, args=(job_id, upload_bytes, original_filename), daemon=True)
@@ -61,14 +65,25 @@ class PipelineService:
             start = time.perf_counter()
             append_run_log(job_id, "low", "Stage start", stage="ingestion")
             original_path, normalized_path = self._stage_ingest(job_id, upload_bytes)
-            update_stage_duration(job_id, "ingestion", time.perf_counter() - start)
+            elapsed_s, elapsed_ms = self._elapsed(start)
+            update_stage_duration(job_id, "ingestion", elapsed_s)
             update_artifacts(job_id, original=str(original_path), normalized=str(normalized_path))
-            append_run_log(job_id, "mid", "Stage done", stage="ingestion", original=original_path.name, normalized=normalized_path.name)
+            append_run_log(
+                job_id,
+                "mid",
+                "Stage done",
+                stage="ingestion",
+                elapsed_ms=elapsed_ms,
+                elapsed_s=round(elapsed_s, 4),
+                original=original_path.name,
+                normalized=normalized_path.name,
+            )
 
             start = time.perf_counter()
             append_run_log(job_id, "low", "Stage start", stage="preprocessing")
-            grayscale_path, edge_map_path, subject_mask_path = self._stage_preprocess(job_id, job_settings)
-            update_stage_duration(job_id, "preprocessing", time.perf_counter() - start)
+            grayscale_path, edge_map_path, subject_mask_path, mask_cov = self._stage_preprocess(job_id, job_settings)
+            elapsed_s, elapsed_ms = self._elapsed(start)
+            update_stage_duration(job_id, "preprocessing", elapsed_s)
             update_artifacts(
                 job_id,
                 grayscale=str(grayscale_path),
@@ -80,10 +95,21 @@ class PipelineService:
                 "mid",
                 "Stage done",
                 stage="preprocessing",
+                elapsed_ms=elapsed_ms,
+                elapsed_s=round(elapsed_s, 4),
                 grayscale=grayscale_path.name,
                 edge_map=edge_map_path.name,
                 subject_mask=subject_mask_path.name,
+                subject_mask_coverage=mask_cov,
             )
+            if mask_cov < 0.06 or mask_cov > 0.94:
+                append_run_log(
+                    job_id,
+                    "mid",
+                    "Subject mask coverage is extreme",
+                    subject_mask_coverage=mask_cov,
+                    note="Silhouette guidance may be weak; fallback mask likely used",
+                )
 
             start = time.perf_counter()
             append_run_log(job_id, "low", "Stage start", stage="generation")
@@ -105,11 +131,12 @@ class PipelineService:
                     "Generation provider call failed",
                     provider=("siliconflow" if app_settings.siliconflow_api_key else "local_mock"),
                     configured_model=(FORCED_MODEL if app_settings.siliconflow_api_key else app_settings.siliconflow_model),
-                    elapsed_ms=round((time.perf_counter() - start) * 1000, 2),
+                    elapsed_ms=self._elapsed(start)[1],
                     error=f"{gen_exc.__class__.__name__}: {gen_exc}",
                 )
                 raise
-            update_stage_duration(job_id, "generation", time.perf_counter() - start)
+            elapsed_s, elapsed_ms = self._elapsed(start)
+            update_stage_duration(job_id, "generation", elapsed_s)
             update_artifacts(job_id, candidates=[str(p) for p in candidates])
             append_run_log(
                 job_id,
@@ -127,7 +154,15 @@ class PipelineService:
                 prompt_version=generation_trace.get("prompt_version"),
             )
             update_metadata(job_id, prompt_version=generation_trace.get("prompt_version"))
-            append_run_log(job_id, "mid", "Stage done", stage="generation", candidates=len(candidates))
+            append_run_log(
+                job_id,
+                "mid",
+                "Stage done",
+                stage="generation",
+                elapsed_ms=elapsed_ms,
+                elapsed_s=round(elapsed_s, 4),
+                candidates=len(candidates),
+            )
             append_run_log(
                 job_id,
                 "high",
@@ -151,11 +186,12 @@ class PipelineService:
                     "Inking provider call failed",
                     provider=("siliconflow" if app_settings.siliconflow_api_key else "local_mock"),
                     configured_model=(FORCED_MODEL if app_settings.siliconflow_api_key else app_settings.siliconflow_model),
-                    elapsed_ms=round((time.perf_counter() - start) * 1000, 2),
+                    elapsed_ms=self._elapsed(start)[1],
                     error=f"{ink_exc.__class__.__name__}: {ink_exc}",
                 )
                 raise
-            update_stage_duration(job_id, "inking", time.perf_counter() - start)
+            elapsed_s, elapsed_ms = self._elapsed(start)
+            update_stage_duration(job_id, "inking", elapsed_s)
             artifact_updates: dict[str, object] = {"refined_candidates": [str(p) for p in refined_candidates]}
             if refined_candidates:
                 artifact_updates["refined"] = str(refined_candidates[0])
@@ -175,7 +211,15 @@ class PipelineService:
                 total_inking_ms=round(sum(t.get("total_inking_ms", 0.0) for t in inking_traces), 2),
                 refined_candidates=len(refined_candidates),
             )
-            append_run_log(job_id, "mid", "Stage done", stage="inking", refined_candidates=len(refined_candidates))
+            append_run_log(
+                job_id,
+                "mid",
+                "Stage done",
+                stage="inking",
+                elapsed_ms=elapsed_ms,
+                elapsed_s=round(elapsed_s, 4),
+                refined_candidates=len(refined_candidates),
+            )
             append_run_log(job_id, "high", "Refined candidate files", files=",".join([p.name for p in refined_candidates]))
             score_rows = self._score_candidates(candidates, refined_candidates)
             score_map = {row["candidate"]: row for row in score_rows}
@@ -234,7 +278,8 @@ class PipelineService:
             start = time.perf_counter()
             append_run_log(job_id, "low", "Stage start", stage="cleanup")
             binary_path, preview_path = self._stage_cleanup(job_id, refined_path, settings)
-            update_stage_duration(job_id, "cleanup", time.perf_counter() - start)
+            elapsed_s, elapsed_ms = self._elapsed(start)
+            update_stage_duration(job_id, "cleanup", elapsed_s)
             update_artifacts(job_id, binary=str(binary_path), cleanup_preview=str(preview_path))
             quality = measure_line_diagnostics(binary_path)
             update_metadata(job_id, quality_diagnostics=quality)
@@ -243,6 +288,8 @@ class PipelineService:
                 "mid",
                 "Stage done",
                 stage="cleanup",
+                elapsed_ms=elapsed_ms,
+                elapsed_s=round(elapsed_s, 4),
                 binary=binary_path.name,
                 cleanup_preview=preview_path.name,
                 small_component_count=quality.get("small_component_count"),
@@ -253,7 +300,8 @@ class PipelineService:
             start = time.perf_counter()
             append_run_log(job_id, "low", "Stage start", stage="vectorization")
             svg_path, preview_svg_path, cnc_metrics = self._stage_vectorize(job_id, binary_path, settings)
-            update_stage_duration(job_id, "vectorization", time.perf_counter() - start)
+            elapsed_s, elapsed_ms = self._elapsed(start)
+            update_stage_duration(job_id, "vectorization", elapsed_s)
             update_artifacts(job_id, final_svg=str(svg_path), final_preview=str(preview_svg_path))
             update_metadata(job_id, cnc_metrics=cnc_metrics)
             append_run_log(
@@ -261,6 +309,8 @@ class PipelineService:
                 "mid",
                 "Stage done",
                 stage="vectorization",
+                elapsed_ms=elapsed_ms,
+                elapsed_s=round(elapsed_s, 4),
                 final_svg=svg_path.name,
                 final_preview=preview_svg_path.name,
                 node_count=cnc_metrics.get("node_count"),
@@ -270,9 +320,18 @@ class PipelineService:
             start = time.perf_counter()
             append_run_log(job_id, "low", "Stage start", stage="export")
             package_path = self._stage_export_package(job_id)
-            update_stage_duration(job_id, "export", time.perf_counter() - start)
+            elapsed_s, elapsed_ms = self._elapsed(start)
+            update_stage_duration(job_id, "export", elapsed_s)
             update_artifacts(job_id, package_zip=str(package_path))
-            append_run_log(job_id, "mid", "Stage done", stage="export", package_zip=package_path.name)
+            append_run_log(
+                job_id,
+                "mid",
+                "Stage done",
+                stage="export",
+                elapsed_ms=elapsed_ms,
+                elapsed_s=round(elapsed_s, 4),
+                package_zip=package_path.name,
+            )
 
             update_metadata(job_id, status=JobStatus.completed, error=None)
             append_run_log(job_id, "low", "Job completed successfully")
@@ -299,7 +358,8 @@ class PipelineService:
             start = time.perf_counter()
             append_run_log(job_id, "low", "Stage start", stage="inking_rerun")
             refined_path, inking_trace = self._stage_inking(job_id, candidate_path, settings)
-            update_stage_duration(job_id, "inking_rerun", time.perf_counter() - start)
+            elapsed_s, elapsed_ms = self._elapsed(start)
+            update_stage_duration(job_id, "inking_rerun", elapsed_s)
             update_artifacts(job_id, refined=str(refined_path))
             append_run_log(
                 job_id,
@@ -307,13 +367,16 @@ class PipelineService:
                 "Inking rerun provider call",
                 provider=inking_trace.get("provider"),
                 denoising_strength=inking_trace.get("denoising_strength"),
+                elapsed_ms=elapsed_ms,
+                elapsed_s=round(elapsed_s, 4),
                 refined=refined_path.name,
             )
 
             start = time.perf_counter()
             append_run_log(job_id, "low", "Stage start", stage="cleanup")
             binary_path, preview_path = self._stage_cleanup(job_id, refined_path, settings)
-            update_stage_duration(job_id, "cleanup", time.perf_counter() - start)
+            elapsed_s, elapsed_ms = self._elapsed(start)
+            update_stage_duration(job_id, "cleanup", elapsed_s)
             update_artifacts(job_id, binary=str(binary_path), cleanup_preview=str(preview_path))
             quality = measure_line_diagnostics(binary_path)
             update_metadata(job_id, quality_diagnostics=quality)
@@ -322,6 +385,8 @@ class PipelineService:
                 "mid",
                 "Stage done",
                 stage="cleanup",
+                elapsed_ms=elapsed_ms,
+                elapsed_s=round(elapsed_s, 4),
                 binary=binary_path.name,
                 cleanup_preview=preview_path.name,
                 small_component_count=quality.get("small_component_count"),
@@ -332,7 +397,8 @@ class PipelineService:
             start = time.perf_counter()
             append_run_log(job_id, "low", "Stage start", stage="vectorization")
             svg_path, preview_svg_path, cnc_metrics = self._stage_vectorize(job_id, binary_path, settings)
-            update_stage_duration(job_id, "vectorization", time.perf_counter() - start)
+            elapsed_s, elapsed_ms = self._elapsed(start)
+            update_stage_duration(job_id, "vectorization", elapsed_s)
             update_artifacts(job_id, final_svg=str(svg_path), final_preview=str(preview_svg_path))
             update_metadata(job_id, cnc_metrics=cnc_metrics)
             append_run_log(
@@ -340,6 +406,8 @@ class PipelineService:
                 "mid",
                 "Stage done",
                 stage="vectorization",
+                elapsed_ms=elapsed_ms,
+                elapsed_s=round(elapsed_s, 4),
                 final_svg=svg_path.name,
                 final_preview=preview_svg_path.name,
                 node_count=cnc_metrics.get("node_count"),
@@ -349,9 +417,18 @@ class PipelineService:
             start = time.perf_counter()
             append_run_log(job_id, "low", "Stage start", stage="export")
             package_path = self._stage_export_package(job_id)
-            update_stage_duration(job_id, "export", time.perf_counter() - start)
+            elapsed_s, elapsed_ms = self._elapsed(start)
+            update_stage_duration(job_id, "export", elapsed_s)
             update_artifacts(job_id, package_zip=str(package_path))
-            append_run_log(job_id, "mid", "Stage done", stage="export", package_zip=package_path.name)
+            append_run_log(
+                job_id,
+                "mid",
+                "Stage done",
+                stage="export",
+                elapsed_ms=elapsed_ms,
+                elapsed_s=round(elapsed_s, 4),
+                package_zip=package_path.name,
+            )
 
             update_metadata(job_id, status=JobStatus.completed, error=None)
             append_run_log(job_id, "low", "Refine-and-rerun completed")
@@ -367,14 +444,14 @@ class PipelineService:
         normalize_upload(original, normalized)
         return original, normalized
 
-    def _stage_preprocess(self, job_id: str, settings: JobSettings) -> tuple[Path, Path, Path]:
+    def _stage_preprocess(self, job_id: str, settings: JobSettings) -> tuple[Path, Path, Path, float]:
         root = job_dir(job_id)
         normalized = root / "02_input_normalized.png"
         grayscale = root / "03_preprocess_grayscale.png"
         edge_map = root / "04_preprocess_edge_map.png"
         subject_mask = root / "05_preprocess_subject_mask.png"
         preprocess(normalized, grayscale, edge_map, settings.detail_level.value, subject_mask)
-        return grayscale, edge_map, subject_mask
+        return grayscale, edge_map, subject_mask, subject_mask_coverage(subject_mask)
 
     def _stage_generate(self, job_id: str, settings: JobSettings) -> tuple[list[Path], dict]:
         root = job_dir(job_id)

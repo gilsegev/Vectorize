@@ -23,16 +23,15 @@ LEGACY_NEGATIVE_PROMPT = (
 PROMPT_REGISTRY: dict[PromptProfile, dict[str, str]] = {
     PromptProfile.balanced_default: {
         "prompt": (
-            "clean professional pen-and-ink line drawing of the uploaded image, restrained linework, strong outer contours, "
-            "simplified interior detail, preserved subject identity cues, preserved distinctive structural features, natural proportions, "
-            "selective line placement, clean silhouettes, minimal but distinctive key features, lightly simplified texture and surface detail, "
-            "smooth black ink lines on plain light background, polished hand-drawn illustration"
+            "stylized professional black-ink line art of the uploaded image, clear cartoonized silhouette with preserved structure, "
+            "clean confident contours, keep distinctive internal subject features, simplify low-value texture only, "
+            "preserve identity cues and key structural landmarks from the source image, polished decal-ready look on plain light background, "
+            "do not change subject category or anatomy"
         ),
         "negative_prompt": (
-            "generic simplification, overly idealized structure, blocky massing, posterized structure, messy background, photoreal shading, "
-            "painterly texture, watercolor, gray wash, crosshatching, excessive texture, too many interior lines, noisy micro-detail, "
-            "cluttered low-value detail, sketchy scribbles, duplicated features, deformed structure, comic-book exaggeration, cartoon style, "
-            "manga style, engraving texture, woodcut texture"
+            "generic simplification, erased internal features, blank interior surfaces, muddy contour breaks, over-thinning key lines, "
+            "subject category swap, changed object type, changed anatomy, person-to-vehicle substitution, icon-to-truck substitution, "
+            "messy background, watercolor, painterly texture, photoreal shading, noisy micro speckles, duplicated geometry, deformed structure"
         ),
     },
     PromptProfile.balanced_fallback_base_control: {
@@ -50,14 +49,14 @@ PROMPT_REGISTRY: dict[PromptProfile, dict[str, str]] = {
     },
     PromptProfile.realistic_seed: {
         "prompt": (
-            "naturalistic professional pen-and-ink drawing of the uploaded image, accurate structure, restrained simplification, clean contour emphasis, "
+            "high-fidelity professional pen-and-ink drawing of the uploaded image, accurate structure, minimal stylization, clean contour emphasis, "
             "preserved subject identity cues, preserved important structural features, subtle interior detail, natural proportions, "
-            "lightly simplified texture, smooth black ink contours, polished hand-drawn line illustration on a plain light background"
+            "retain essential source detail and shape relationships, smooth black ink contours, polished hand-drawn line illustration on a plain light background"
         ),
         "negative_prompt": (
             "cartoon simplification, exaggerated features, generic structure, posterized look, graphic novel style, comic-book inking, manga style, "
-            "logo style, stencil effect, excessive black fill, messy background, photoreal shading, painterly texture, watercolor, gray wash, "
-            "crosshatching, dense texture, sketchy scribbles"
+            "logo style, stencil effect, aggressive abstraction, excessive black fill, messy background, photoreal shading, painterly texture, watercolor, gray wash, "
+            "crosshatching, dense texture, sketchy scribbles, subject category swap, changed object type, changed anatomy"
         ),
     },
     PromptProfile.stylized_seed_do_not_default: {
@@ -76,22 +75,25 @@ PROMPT_REGISTRY: dict[PromptProfile, dict[str, str]] = {
     PromptProfile.stylized_v1_detail_preserving: {
         "prompt": (
             "stylized professional black-ink line art of the uploaded image, clear cartoonized silhouette with preserved structure, "
-            "clean confident contours, keep distinctive internal mechanical features, simplify low-value texture only, "
-            "preserve emblem, grille pattern, wheel spoke readability, and major panel seams, polished decal-ready look on plain light background"
+            "clean confident contours, keep distinctive internal subject features, simplify low-value texture only, "
+            "preserve identity cues and key structural landmarks from the source image, polished decal-ready look on plain light background, "
+            "do not change subject category or anatomy"
         ),
         "negative_prompt": (
             "generic simplification, erased internal features, blank interior surfaces, muddy contour breaks, over-thinning key lines, "
+            "subject category swap, changed object type, changed anatomy, person-to-vehicle substitution, icon-to-truck substitution, "
             "messy background, watercolor, painterly texture, photoreal shading, noisy micro speckles, duplicated geometry, deformed structure"
         ),
     },
     PromptProfile.stylized_v2_balanced_cartoon: {
         "prompt": (
             "cartoon-leaning yet subject-faithful black-and-white line illustration of the uploaded image, bold outer contours, "
-            "selective interior detail, simplified forms, crisp high-contrast inking, preserve signature shape cues and important mechanical landmarks, "
-            "clean production-ready stylization on plain light background"
+            "selective interior detail, simplified forms, crisp high-contrast inking, preserve signature shape cues and important structural landmarks, "
+            "clean production-ready stylization on plain light background, keep the same subject category as input"
         ),
         "negative_prompt": (
-            "flat generic silhouette, missing grille pattern, missing wheel features, collapsed panel structure, over-detailed texture noise, "
+            "flat generic silhouette, missing identity landmarks, collapsed structure, over-detailed texture noise, "
+            "subject category swap, changed object type, changed anatomy, person-to-vehicle substitution, icon-to-truck substitution, "
             "messy line chatter, photoreal shading, sketchy rough lines, comic halftone dots, gradient fills, watercolor wash"
         ),
     },
@@ -99,10 +101,11 @@ PROMPT_REGISTRY: dict[PromptProfile, dict[str, str]] = {
         "prompt": (
             "strongly stylized cartoon ink rendering of the uploaded image with bold contour hierarchy, thicker key outlines, "
             "intentional simplification of secondary lines, keep recognizable subject identity and major structural geometry, "
-            "high-impact graphic decal style with clean black paths and no background clutter"
+            "high-impact graphic decal style with clean black paths and no background clutter, keep original subject category"
         ),
         "negative_prompt": (
             "identity drift, altered proportions, removed key landmarks, chaotic texture, shaky sketch strokes, over-fragmented interior lines, "
+            "subject category swap, changed object type, changed anatomy, person-to-vehicle substitution, icon-to-truck substitution, "
             "photoreal lighting, gray shading, painterly effects, soft blurred edges, excessive tiny artifacts"
         ),
     },
@@ -110,10 +113,11 @@ PROMPT_REGISTRY: dict[PromptProfile, dict[str, str]] = {
         "prompt": (
             "graphic poster-style cartoon line art from the uploaded image, bold simplified masses, assertive outer silhouette, "
             "minimal but strategic interior line accents, preserve core identity cues and dominant structural features, "
-            "clean geometric black ink shapes suitable for decal fabrication"
+            "clean geometric black ink shapes suitable for decal fabrication, preserve source subject category"
         ),
         "negative_prompt": (
             "subject deformation, unreadable structure, random missing parts, muddy edges, fine noise texture, crosshatching, engraving look, "
+            "subject category swap, changed object type, changed anatomy, person-to-vehicle substitution, icon-to-truck substitution, "
             "photoreal shadows, painterly brush texture, busy background, low-contrast gray tones"
         ),
     },

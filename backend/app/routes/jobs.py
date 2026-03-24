@@ -37,7 +37,7 @@ STYLE_TO_PROMPT: dict[StylePreset, PromptProfile] = {
     StylePreset.legacy: PromptProfile.legacy,
     StylePreset.realistic: PromptProfile.realistic_seed,
     StylePreset.balanced: PromptProfile.balanced_default,
-    StylePreset.stylized: PromptProfile.stylized_seed_do_not_default,
+    StylePreset.stylized: PromptProfile.stylized_v3_bold_cartoon,
 }
 
 

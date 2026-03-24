@@ -1,0 +1,27 @@
+[
+  {
+    "subject": "pet",
+    "status": "missing_input",
+    "expected_file": "d:\\vecrorize\\public\\validation_inputs\\pet.jpg"
+  },
+  {
+    "subject": "vehicle",
+    "status": "missing_input",
+    "expected_file": "d:\\vecrorize\\public\\validation_inputs\\vehicle.jpg"
+  },
+  {
+    "subject": "building",
+    "status": "missing_input",
+    "expected_file": "d:\\vecrorize\\public\\validation_inputs\\building.jpg"
+  },
+  {
+    "subject": "product",
+    "status": "missing_input",
+    "expected_file": "d:\\vecrorize\\public\\validation_inputs\\product.jpg"
+  },
+  {
+    "subject": "logo",
+    "status": "missing_input",
+    "expected_file": "d:\\vecrorize\\public\\validation_inputs\\logo.png"
+  }
+]

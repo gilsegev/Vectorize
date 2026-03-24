@@ -7,12 +7,130 @@ from app.config import settings
 from app.models import CleanupStrength
 
 
+def _quantile(values: list[int], q: float) -> int:
+    if not values:
+        return 0
+    idx = int(max(0, min(len(values) - 1, round((len(values) - 1) * q))))
+    return sorted(values)[idx]
+
+
+def _largest_foreground_component(mask_bytes: bytearray, width: int, height: int) -> bytearray:
+    visited = bytearray(width * height)
+    best: list[int] = []
+    deltas = (-1, 1, -width, width)
+    for idx, value in enumerate(mask_bytes):
+        if value == 0 or visited[idx]:
+            continue
+        queue: deque[int] = deque([idx])
+        visited[idx] = 1
+        comp: list[int] = []
+        while queue:
+            cur = queue.popleft()
+            comp.append(cur)
+            x = cur % width
+            for d in deltas:
+                nxt = cur + d
+                if nxt < 0 or nxt >= len(mask_bytes):
+                    continue
+                nx = nxt % width
+                if abs(nx - x) > 1:
+                    continue
+                if mask_bytes[nxt] != 0 and not visited[nxt]:
+                    visited[nxt] = 1
+                    queue.append(nxt)
+        if len(comp) > len(best):
+            best = comp
+
+    out = bytearray(len(mask_bytes))
+    for idx in best:
+        out[idx] = 255
+    return out
+
+
+def _mask_coverage(mask_img: Image.Image) -> float:
+    px = list(mask_img.convert("L").getdata())
+    fg = sum(1 for v in px if v > 127)
+    return fg / max(len(px), 1)
+
+
+def _center_fallback_mask(width: int, height: int) -> Image.Image:
+    left = int(width * 0.05)
+    right = int(width * 0.95)
+    top = int(height * 0.02)
+    bottom = int(height * 0.98)
+    data = bytearray(width * height)
+    for y in range(top, bottom):
+        row = y * width
+        for x in range(left, right):
+            data[row + x] = 255
+    return Image.frombytes("L", (width, height), bytes(data))
+
+
 def _derive_phase1_subject_mask(normalized_path: Path, mask_out: Path) -> None:
     rgb = Image.open(normalized_path).convert("RGB")
-    gray = ImageOps.grayscale(rgb)
-    # White-ish background stays background; subject region becomes foreground.
-    mask = gray.point(lambda p: 255 if p < 245 else 0, mode="L")
-    mask = mask.filter(ImageFilter.MaxFilter(size=5)).filter(ImageFilter.MinFilter(size=5))
+    width, height = rgb.size
+    px = list(rgb.getdata())
+
+    # Border-aware segmentation:
+    # assume border pixels are mostly background, then flood-fill connected background
+    # through color-similar areas.
+    border_coords: list[int] = []
+    border_band_x = max(2, int(width * 0.03))
+    border_band_y = max(2, int(height * 0.03))
+    for y in range(height):
+        for x in range(width):
+            if x < border_band_x or x >= width - border_band_x or y < border_band_y or y >= height - border_band_y:
+                border_coords.append(y * width + x)
+
+    br = sum(px[i][0] for i in border_coords) / max(len(border_coords), 1)
+    bg = sum(px[i][1] for i in border_coords) / max(len(border_coords), 1)
+    bb = sum(px[i][2] for i in border_coords) / max(len(border_coords), 1)
+
+    dist: list[int] = []
+    for (r, g, b) in px:
+        dr = int(r - br)
+        dg = int(g - bg)
+        db = int(b - bb)
+        dist.append(dr * dr + dg * dg + db * db)
+
+    border_dist = [dist[i] for i in border_coords]
+    bg_threshold = _quantile(border_dist, 0.90) + 900
+    candidate_bg = bytearray(1 if d <= bg_threshold else 0 for d in dist)
+
+    # Flood fill background from border across color-similar region.
+    is_bg = bytearray(width * height)
+    q: deque[int] = deque()
+    for idx in border_coords:
+        if candidate_bg[idx] and not is_bg[idx]:
+            is_bg[idx] = 1
+            q.append(idx)
+    deltas = (-1, 1, -width, width)
+    while q:
+        cur = q.popleft()
+        x = cur % width
+        for d in deltas:
+            nxt = cur + d
+            if nxt < 0 or nxt >= width * height:
+                continue
+            nx = nxt % width
+            if abs(nx - x) > 1:
+                continue
+            if candidate_bg[nxt] and not is_bg[nxt]:
+                is_bg[nxt] = 1
+                q.append(nxt)
+
+    fg_mask = bytearray(255 if not is_bg[i] else 0 for i in range(width * height))
+    fg_img = Image.frombytes("L", (width, height), bytes(fg_mask))
+    fg_img = fg_img.filter(ImageFilter.MaxFilter(size=5)).filter(ImageFilter.MinFilter(size=5))
+
+    cleaned = _largest_foreground_component(bytearray(fg_img.getdata()), width, height)
+    mask = Image.frombytes("L", (width, height), bytes(cleaned))
+    coverage = _mask_coverage(mask)
+
+    # Safety fallback: if segmentation is degenerate, use conservative centered mask.
+    if coverage < 0.03 or coverage > 0.95:
+        mask = _center_fallback_mask(width, height)
+
     mask.save(mask_out, format="PNG")
 
 
@@ -49,6 +167,11 @@ def preprocess(
     edges.save(edge_map_out, format="PNG")
     if subject_mask_out is not None:
         _derive_phase1_subject_mask(normalized_path, subject_mask_out)
+
+
+def subject_mask_coverage(mask_path: Path) -> float:
+    mask = Image.open(mask_path).convert("L")
+    return round(_mask_coverage(mask), 4)
 
 
 def cleanup_raster(
